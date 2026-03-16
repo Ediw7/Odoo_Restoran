@@ -22,9 +22,9 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ username, password })
     }),
-    getDashboard: (cabangId) => {
-        let url = '/api/dashboard';
-        if (cabangId) url += `?cabang_id=${cabangId}`;
+    getDashboard: (cabangId, period = 'today') => {
+        let url = `/api/dashboard?period=${period}`;
+        if (cabangId) url += `&cabang_id=${cabangId}`;
         return apiFetch(url);
     },
     getCabang: () => apiFetch('/api/cabang'),

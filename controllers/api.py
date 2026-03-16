@@ -347,7 +347,7 @@ class RestoranAPI(http.Controller):
             _logger.error(f"Error updating order status: {e}")
             return self._json_response({'status': 'error', 'message': str(e)}, 500)
 
-    # ==========================================
+   # ==========================================
     # API DASHBOARD
     # ==========================================
     @http.route('/api/dashboard', type='http', auth='public', methods=['GET', 'OPTIONS'], csrf=False)
@@ -356,6 +356,8 @@ class RestoranAPI(http.Controller):
             return self._cors_preflight()
         try:
             cabang_id = kwargs.get('cabang_id')
+            period = kwargs.get('period', 'today') # Ambil filter waktu, default: hari ini
+            
             domain = [('id', '=', int(cabang_id))] if cabang_id else []
             cabang_list = request.env['restoran.cabang'].sudo().search(domain)
 
@@ -370,23 +372,30 @@ class RestoranAPI(http.Controller):
                 dashboard['cabang_stats'].append({
                     'id': c.id,
                     'name': c.name,
-                    'code': c.code,
                     'is_open': c.is_open,
-                    'total_menu': c.total_menu,
-                    'total_order_today': c.total_order_today,
-                    'revenue_today': c.revenue_today,
                 })
 
-            today = Date.today()
+            # Filter waktu untuk pesanan
             order_domain = [('state', '=', 'done')]
             if cabang_id:
                 order_domain.append(('cabang_id', '=', int(cabang_id)))
                 
-            all_orders_today = request.env['restoran.order'].sudo().search(order_domain).filtered(lambda o: o.order_date and o.order_date.date() == today)
+            today = Date.today()
+            if period == 'today':
+                order_domain += [('order_date', '>=', today.strftime('%Y-%m-%d 00:00:00')), 
+                                 ('order_date', '<=', today.strftime('%Y-%m-%d 23:59:59'))]
+            elif period == 'month':
+                first_day_of_month = today.replace(day=1)
+                order_domain += [('order_date', '>=', first_day_of_month.strftime('%Y-%m-%d 00:00:00'))]
+            elif period == 'year':
+                first_day_of_year = today.replace(month=1, day=1)
+                order_domain += [('order_date', '>=', first_day_of_year.strftime('%Y-%m-%d 00:00:00'))]
+
+            all_orders = request.env['restoran.order'].sudo().search(order_domain)
 
             dashboard['global'] = {
-                'total_orders_today': len(all_orders_today),
-                'total_revenue_today': sum(all_orders_today.mapped('total_amount')),
+                'total_orders': len(all_orders),
+                'total_revenue': sum(all_orders.mapped('total_amount')),
                 'total_menu_available': request.env['restoran.menu'].sudo().search_count([
                     ('available', '=', True)
                 ] + ([('cabang_id', 'in', [False, int(cabang_id)])] if cabang_id else [])),
