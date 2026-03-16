@@ -126,3 +126,19 @@ class RestoranOrderLine(models.Model):
     def _compute_subtotal(self):
         for line in self:
             line.subtotal = line.qty * line.price
+
+
+
+
+
+
+
+class ResUsers(models.Model):
+    _inherit = 'res.users'
+    
+    cabang_id = fields.Many2one('restoran.cabang', string='Cabang Restoran (Untuk Kasir)')
+    
+    restoran_role = fields.Selection([
+        ('admin', 'Administrator (Bos)'),
+        ('cashier', 'Kasir Cabang')
+    ], string='Role Restoran', default='cashier')

@@ -18,8 +18,23 @@ export const apiFetch = async (url, options = {}) => {
 
 export const api = {
     apiFetch,
-    getDashboard: () => apiFetch('/api/dashboard'),
+    login: (username, password) => apiFetch('/api/login', {
+        method: 'POST',
+        body: JSON.stringify({ username, password })
+    }),
+    getDashboard: (cabangId) => {
+        let url = '/api/dashboard';
+        if (cabangId) url += `?cabang_id=${cabangId}`;
+        return apiFetch(url);
+    },
     getCabang: () => apiFetch('/api/cabang'),
+
+
+    manageCabang: (payload) => apiFetch('/api/cabang_action', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+    }),
+
     getMenu: (kategoriId) => {
         let url = '/api/menu';
         if (kategoriId && kategoriId !== 'all') url += `?kategori_id=${kategoriId}`;
@@ -32,8 +47,7 @@ export const api = {
         body: JSON.stringify(payload)
     }),
     updateOrderStatus: (orderId, action) => apiFetch(`/api/orders/${orderId}/${action}`, {
-        method: 'POST',
-        body: JSON.stringify({ jsonrpc: '2.0', params: {} })
+        method: 'POST'
     }),
 };
 
