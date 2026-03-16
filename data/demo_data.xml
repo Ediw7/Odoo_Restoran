@@ -1,0 +1,343 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Sequence for Order -->
+    <record id="seq_restoran_order" model="ir.sequence">
+        <field name="name">Restoran Order Sequence</field>
+        <field name="code">restoran.order</field>
+        <field name="prefix">ORD/%(year)s/</field>
+        <field name="padding">5</field>
+    </record>
+
+    <!-- ==================== CABANG ==================== -->
+    <record id="cabang_pusat" model="restoran.cabang">
+        <field name="name">Warung Nusantara - Pusat (Jakarta)</field>
+        <field name="code">JKT</field>
+        <field name="address">Jl. Sudirman No. 100, Jakarta Selatan</field>
+        <field name="phone">021-55501234</field>
+        <field name="is_open" eval="True"/>
+    </record>
+
+    <record id="cabang_bandung" model="restoran.cabang">
+        <field name="name">Warung Nusantara - Bandung</field>
+        <field name="code">BDG</field>
+        <field name="address">Jl. Braga No. 25, Bandung</field>
+        <field name="phone">022-44405678</field>
+        <field name="is_open" eval="True"/>
+    </record>
+
+    <record id="cabang_surabaya" model="restoran.cabang">
+        <field name="name">Warung Nusantara - Surabaya</field>
+        <field name="code">SBY</field>
+        <field name="address">Jl. Tunjungan No. 50, Surabaya</field>
+        <field name="phone">031-33309876</field>
+        <field name="is_open" eval="True"/>
+    </record>
+
+    <!-- ==================== KATEGORI MENU ==================== -->
+    <record id="kategori_makanan_berat" model="restoran.menu.kategori">
+        <field name="name">Makanan Berat</field>
+        <field name="icon">🍚</field>
+        <field name="sequence">1</field>
+    </record>
+
+    <record id="kategori_lauk" model="restoran.menu.kategori">
+        <field name="name">Lauk Pauk</field>
+        <field name="icon">🍗</field>
+        <field name="sequence">2</field>
+    </record>
+
+    <record id="kategori_sayur" model="restoran.menu.kategori">
+        <field name="name">Sayur &amp; Sup</field>
+        <field name="icon">🥬</field>
+        <field name="sequence">3</field>
+    </record>
+
+    <record id="kategori_sambal" model="restoran.menu.kategori">
+        <field name="name">Sambal &amp; Pelengkap</field>
+        <field name="icon">🌶️</field>
+        <field name="sequence">4</field>
+    </record>
+
+    <record id="kategori_minuman" model="restoran.menu.kategori">
+        <field name="name">Minuman</field>
+        <field name="icon">🥤</field>
+        <field name="sequence">5</field>
+    </record>
+
+    <record id="kategori_dessert" model="restoran.menu.kategori">
+        <field name="name">Dessert</field>
+        <field name="icon">🍰</field>
+        <field name="sequence">6</field>
+    </record>
+
+    <record id="kategori_paket" model="restoran.menu.kategori">
+        <field name="name">Paket Hemat</field>
+        <field name="icon">🎁</field>
+        <field name="sequence">7</field>
+    </record>
+
+    <!-- ==================== MENU ITEMS ==================== -->
+    <!-- Makanan Berat -->
+    <record id="menu_nasi_putih" model="restoran.menu">
+        <field name="name">Nasi Putih</field>
+        <field name="code">MKN001</field>
+        <field name="kategori_id" ref="kategori_makanan_berat"/>
+        <field name="price">5000</field>
+        <field name="cost">2000</field>
+        <field name="preparation_time">3</field>
+        <field name="description">Nasi putih pulen hangat</field>
+    </record>
+
+    <record id="menu_nasi_goreng" model="restoran.menu">
+        <field name="name">Nasi Goreng Spesial</field>
+        <field name="code">MKN002</field>
+        <field name="kategori_id" ref="kategori_makanan_berat"/>
+        <field name="price">25000</field>
+        <field name="cost">10000</field>
+        <field name="tag">bestseller</field>
+        <field name="is_bestseller" eval="True"/>
+        <field name="preparation_time">15</field>
+        <field name="description">Nasi goreng dengan telur, ayam suwir, dan kerupuk</field>
+    </record>
+
+    <record id="menu_mie_goreng" model="restoran.menu">
+        <field name="name">Mie Goreng Jawa</field>
+        <field name="code">MKN003</field>
+        <field name="kategori_id" ref="kategori_makanan_berat"/>
+        <field name="price">22000</field>
+        <field name="cost">8000</field>
+        <field name="preparation_time">15</field>
+        <field name="description">Mie goreng bumbu Jawa pedas manis</field>
+        <field name="is_spicy" eval="True"/>
+    </record>
+
+    <record id="menu_nasi_uduk" model="restoran.menu">
+        <field name="name">Nasi Uduk</field>
+        <field name="code">MKN004</field>
+        <field name="kategori_id" ref="kategori_makanan_berat"/>
+        <field name="price">8000</field>
+        <field name="cost">3000</field>
+        <field name="preparation_time">5</field>
+        <field name="description">Nasi uduk Betawi gurih harum</field>
+    </record>
+
+    <!-- Lauk Pauk -->
+    <record id="menu_ayam_goreng" model="restoran.menu">
+        <field name="name">Ayam Goreng Kremes</field>
+        <field name="code">LK001</field>
+        <field name="kategori_id" ref="kategori_lauk"/>
+        <field name="price">20000</field>
+        <field name="cost">9000</field>
+        <field name="tag">bestseller</field>
+        <field name="is_bestseller" eval="True"/>
+        <field name="preparation_time">20</field>
+        <field name="description">Ayam goreng renyah dengan kremesan gurih</field>
+    </record>
+
+    <record id="menu_ayam_bakar" model="restoran.menu">
+        <field name="name">Ayam Bakar Kecap</field>
+        <field name="code">LK002</field>
+        <field name="kategori_id" ref="kategori_lauk"/>
+        <field name="price">22000</field>
+        <field name="cost">10000</field>
+        <field name="preparation_time">25</field>
+        <field name="description">Ayam bakar bumbu kecap manis</field>
+    </record>
+
+    <record id="menu_rendang" model="restoran.menu">
+        <field name="name">Rendang Sapi</field>
+        <field name="code">LK003</field>
+        <field name="kategori_id" ref="kategori_lauk"/>
+        <field name="price">30000</field>
+        <field name="cost">15000</field>
+        <field name="tag">recommended</field>
+        <field name="preparation_time">10</field>
+        <field name="is_spicy" eval="True"/>
+        <field name="description">Rendang daging sapi empuk bumbu Padang</field>
+    </record>
+
+    <record id="menu_ikan_bakar" model="restoran.menu">
+        <field name="name">Ikan Gurame Bakar</field>
+        <field name="code">LK004</field>
+        <field name="kategori_id" ref="kategori_lauk"/>
+        <field name="price">45000</field>
+        <field name="cost">22000</field>
+        <field name="preparation_time">30</field>
+        <field name="description">Ikan gurame bakar bumbu kecap, dilengkapi lalapan</field>
+    </record>
+
+    <record id="menu_tempe_goreng" model="restoran.menu">
+        <field name="name">Tempe Goreng Tepung</field>
+        <field name="code">LK005</field>
+        <field name="kategori_id" ref="kategori_lauk"/>
+        <field name="price">8000</field>
+        <field name="cost">3000</field>
+        <field name="preparation_time">10</field>
+        <field name="description">Tempe goreng balut tepung crispy (5 pcs)</field>
+    </record>
+
+    <record id="menu_tahu_isi" model="restoran.menu">
+        <field name="name">Tahu Isi Sayur</field>
+        <field name="code">LK006</field>
+        <field name="kategori_id" ref="kategori_lauk"/>
+        <field name="price">10000</field>
+        <field name="cost">4000</field>
+        <field name="preparation_time">12</field>
+        <field name="description">Tahu isi sayuran goreng renyah (4 pcs)</field>
+    </record>
+
+    <!-- Sayur & Sup -->
+    <record id="menu_sayur_asem" model="restoran.menu">
+        <field name="name">Sayur Asem</field>
+        <field name="code">SYR001</field>
+        <field name="kategori_id" ref="kategori_sayur"/>
+        <field name="price">12000</field>
+        <field name="cost">5000</field>
+        <field name="preparation_time">5</field>
+        <field name="description">Sayur asem segar khas Sunda</field>
+    </record>
+
+    <record id="menu_soto_ayam" model="restoran.menu">
+        <field name="name">Soto Ayam</field>
+        <field name="code">SYR002</field>
+        <field name="kategori_id" ref="kategori_sayur"/>
+        <field name="price">18000</field>
+        <field name="cost">7000</field>
+        <field name="tag">recommended</field>
+        <field name="preparation_time">10</field>
+        <field name="description">Soto ayam kuning dengan soun, tauge, dan telur</field>
+    </record>
+
+    <record id="menu_rawon" model="restoran.menu">
+        <field name="name">Rawon</field>
+        <field name="code">SYR003</field>
+        <field name="kategori_id" ref="kategori_sayur"/>
+        <field name="price">28000</field>
+        <field name="cost">14000</field>
+        <field name="preparation_time">10</field>
+        <field name="description">Rawon daging sapi khas Surabaya</field>
+    </record>
+
+    <!-- Sambal -->
+    <record id="menu_sambal_terasi" model="restoran.menu">
+        <field name="name">Sambal Terasi</field>
+        <field name="code">SMB001</field>
+        <field name="kategori_id" ref="kategori_sambal"/>
+        <field name="price">5000</field>
+        <field name="cost">2000</field>
+        <field name="is_spicy" eval="True"/>
+        <field name="preparation_time">3</field>
+        <field name="description">Sambal terasi ulek pedas mantap</field>
+    </record>
+
+    <record id="menu_sambal_matah" model="restoran.menu">
+        <field name="name">Sambal Matah</field>
+        <field name="code">SMB002</field>
+        <field name="kategori_id" ref="kategori_sambal"/>
+        <field name="price">7000</field>
+        <field name="cost">3000</field>
+        <field name="is_spicy" eval="True"/>
+        <field name="tag">new</field>
+        <field name="preparation_time">5</field>
+        <field name="description">Sambal matah khas Bali segar</field>
+    </record>
+
+    <record id="menu_kerupuk" model="restoran.menu">
+        <field name="name">Kerupuk Udang</field>
+        <field name="code">SMB003</field>
+        <field name="kategori_id" ref="kategori_sambal"/>
+        <field name="price">3000</field>
+        <field name="cost">1000</field>
+        <field name="preparation_time">1</field>
+        <field name="description">Kerupuk udang renyah (5 pcs)</field>
+    </record>
+
+    <!-- Minuman -->
+    <record id="menu_es_teh" model="restoran.menu">
+        <field name="name">Es Teh Manis</field>
+        <field name="code">MNM001</field>
+        <field name="kategori_id" ref="kategori_minuman"/>
+        <field name="price">5000</field>
+        <field name="cost">1500</field>
+        <field name="preparation_time">3</field>
+        <field name="description">Es teh manis segar</field>
+    </record>
+
+    <record id="menu_es_jeruk" model="restoran.menu">
+        <field name="name">Es Jeruk Segar</field>
+        <field name="code">MNM002</field>
+        <field name="kategori_id" ref="kategori_minuman"/>
+        <field name="price">8000</field>
+        <field name="cost">3000</field>
+        <field name="preparation_time">5</field>
+        <field name="description">Es jeruk peras segar</field>
+    </record>
+
+    <record id="menu_jus_alpukat" model="restoran.menu">
+        <field name="name">Jus Alpukat</field>
+        <field name="code">MNM003</field>
+        <field name="kategori_id" ref="kategori_minuman"/>
+        <field name="price">15000</field>
+        <field name="cost">6000</field>
+        <field name="tag">bestseller</field>
+        <field name="is_bestseller" eval="True"/>
+        <field name="preparation_time">7</field>
+        <field name="description">Jus alpukat kental dengan susu</field>
+    </record>
+
+    <record id="menu_kopi_susu" model="restoran.menu">
+        <field name="name">Kopi Susu Gula Aren</field>
+        <field name="code">MNM004</field>
+        <field name="kategori_id" ref="kategori_minuman"/>
+        <field name="price">18000</field>
+        <field name="cost">5000</field>
+        <field name="tag">new</field>
+        <field name="preparation_time">7</field>
+        <field name="description">Kopi robusta dengan susu segar dan gula aren</field>
+    </record>
+
+    <!-- Dessert -->
+    <record id="menu_es_campur" model="restoran.menu">
+        <field name="name">Es Campur</field>
+        <field name="code">DSR001</field>
+        <field name="kategori_id" ref="kategori_dessert"/>
+        <field name="price">15000</field>
+        <field name="cost">5000</field>
+        <field name="preparation_time">7</field>
+        <field name="description">Es campur dengan buah-buahan, kolang-kaling, dan sirup</field>
+    </record>
+
+    <record id="menu_es_cendol" model="restoran.menu">
+        <field name="name">Es Cendol Dawet</field>
+        <field name="code">DSR002</field>
+        <field name="kategori_id" ref="kategori_dessert"/>
+        <field name="price">12000</field>
+        <field name="cost">4000</field>
+        <field name="tag">recommended</field>
+        <field name="preparation_time">5</field>
+        <field name="description">Es cendol dengan santan dan gula merah</field>
+    </record>
+
+    <!-- Paket Hemat -->
+    <record id="menu_paket_1" model="restoran.menu">
+        <field name="name">Paket Nusantara 1 (Nasi + Ayam Goreng + Es Teh)</field>
+        <field name="code">PKT001</field>
+        <field name="kategori_id" ref="kategori_paket"/>
+        <field name="price">27000</field>
+        <field name="cost">12000</field>
+        <field name="tag">promo</field>
+        <field name="preparation_time">20</field>
+        <field name="description">Nasi putih, ayam goreng kremes, sambal, lalapan, dan es teh</field>
+    </record>
+
+    <record id="menu_paket_2" model="restoran.menu">
+        <field name="name">Paket Nusantara 2 (Nasi + Rendang + Es Jeruk)</field>
+        <field name="code">PKT002</field>
+        <field name="kategori_id" ref="kategori_paket"/>
+        <field name="price">35000</field>
+        <field name="cost">18000</field>
+        <field name="tag">promo</field>
+        <field name="preparation_time">15</field>
+        <field name="description">Nasi putih, rendang sapi, sayur asem, sambal, dan es jeruk</field>
+    </record>
+</odoo>

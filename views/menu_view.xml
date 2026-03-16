@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Kategori Form -->
+    <record id="view_restoran_menu_kategori_form" model="ir.ui.view">
+        <field name="name">restoran.menu.kategori.form</field>
+        <field name="model">restoran.menu.kategori</field>
+        <field name="arch" type="xml">
+            <form string="Kategori Menu">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="icon"/>
+                        <field name="sequence"/>
+                        <field name="menu_count"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Kategori Tree -->
+    <record id="view_restoran_menu_kategori_tree" model="ir.ui.view">
+        <field name="name">restoran.menu.kategori.tree</field>
+        <field name="model">restoran.menu.kategori</field>
+        <field name="arch" type="xml">
+            <tree string="Kategori Menu">
+                <field name="sequence" widget="handle"/>
+                <field name="icon"/>
+                <field name="name"/>
+                <field name="menu_count"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Menu Form -->
+    <record id="view_restoran_menu_form" model="ir.ui.view">
+        <field name="name">restoran.menu.form</field>
+        <field name="model">restoran.menu</field>
+        <field name="arch" type="xml">
+            <form string="Menu Restoran">
+                <sheet>
+                    <field name="image" widget="image" class="oe_avatar"/>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Nama Menu"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="code"/>
+                            <field name="kategori_id"/>
+                            <field name="cabang_id"/>
+                            <field name="tag"/>
+                        </group>
+                        <group>
+                            <field name="price" widget="monetary"/>
+                            <field name="cost" widget="monetary"/>
+                            <field name="profit_margin" widget="percentage"/>
+                            <field name="preparation_time"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="available"/>
+                            <field name="is_spicy"/>
+                            <field name="is_bestseller"/>
+                        </group>
+                    </group>
+                    <field name="description" placeholder="Deskripsi menu..."/>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Menu Tree -->
+    <record id="view_restoran_menu_tree" model="ir.ui.view">
+        <field name="name">restoran.menu.tree</field>
+        <field name="model">restoran.menu</field>
+        <field name="arch" type="xml">
+            <tree string="Menu Restoran">
+                <field name="sequence" widget="handle"/>
+                <field name="code"/>
+                <field name="name"/>
+                <field name="kategori_id"/>
+                <field name="cabang_id"/>
+                <field name="price" widget="monetary"/>
+                <field name="available"/>
+                <field name="tag"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Actions -->
+    <record id="action_restoran_menu_kategori" model="ir.actions.act_window">
+        <field name="name">Kategori Menu</field>
+        <field name="res_model">restoran.menu.kategori</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <record id="action_restoran_menu" model="ir.actions.act_window">
+        <field name="name">Menu</field>
+        <field name="res_model">restoran.menu</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Root Menu -->
+    <menuitem id="menu_restoran_root"
+              name="Restoran"
+              sequence="10"
+              web_icon="restoran_edi,static/description/icon.png"/>
+
+    <!-- Sub Menu: Operasional -->
+    <menuitem id="menu_restoran_operasional"
+              name="Operasional"
+              parent="menu_restoran_root"
+              sequence="10"/>
+
+    <menuitem id="menu_restoran_order"
+              name="Orders"
+              parent="menu_restoran_operasional"
+              action="action_restoran_order"
+              sequence="10"/>
+
+    <!-- Sub Menu: Master Data -->
+    <menuitem id="menu_restoran_master"
+              name="Master Data"
+              parent="menu_restoran_root"
+              sequence="20"/>
+
+    <menuitem id="menu_restoran_cabang"
+              name="Cabang"
+              parent="menu_restoran_master"
+              action="action_restoran_cabang"
+              sequence="10"/>
+
+    <menuitem id="menu_restoran_menu"
+              name="Menu"
+              parent="menu_restoran_master"
+              action="action_restoran_menu"
+              sequence="20"/>
+
+    <menuitem id="menu_restoran_kategori"
+              name="Kategori"
+              parent="menu_restoran_master"
+              action="action_restoran_menu_kategori"
+              sequence="30"/>
+</odoo>

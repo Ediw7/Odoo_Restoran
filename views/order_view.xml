@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Order Form -->
+    <record id="view_restoran_order_form" model="ir.ui.view">
+        <field name="name">restoran.order.form</field>
+        <field name="model">restoran.order</field>
+        <field name="arch" type="xml">
+            <form string="Order">
+                <header>
+                    <button name="action_confirm" type="object" string="Konfirmasi"
+                            invisible="state != 'draft'" class="btn-primary"/>
+                    <button name="action_prepare" type="object" string="Siapkan"
+                            invisible="state != 'confirmed'" class="btn-primary"/>
+                    <button name="action_ready" type="object" string="Siap Saji"
+                            invisible="state != 'preparing'" class="btn-primary"/>
+                    <button name="action_done" type="object" string="Selesai"
+                            invisible="state != 'ready'" class="btn-success"/>
+                    <button name="action_cancel" type="object" string="Batal"
+                            invisible="state not in ('draft', 'confirmed', 'preparing')" class="btn-danger"/>
+                    <button name="action_reset_draft" type="object" string="Reset ke Draft"
+                            invisible="state != 'cancelled'"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,confirmed,preparing,ready,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="cabang_id"/>
+                            <field name="order_date"/>
+                            <field name="order_type"/>
+                            <field name="table_number" invisible="order_type != 'dine_in'"/>
+                        </group>
+                        <group>
+                            <field name="customer_name"/>
+                            <field name="customer_phone"/>
+                            <field name="cashier_id"/>
+                            <field name="payment_method"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Item Order">
+                            <field name="line_ids">
+                                <tree editable="bottom">
+                                    <field name="menu_id"/>
+                                    <field name="qty"/>
+                                    <field name="price" widget="monetary"/>
+                                    <field name="subtotal" widget="monetary"/>
+                                    <field name="note"/>
+                                </tree>
+                            </field>
+                            <group class="oe_subtotal_footer">
+                                <field name="subtotal" widget="monetary"/>
+                                <field name="tax_amount" widget="monetary"/>
+                                <field name="total_amount" widget="monetary" class="oe_subtotal_footer_separator"/>
+                            </group>
+                        </page>
+                        <page string="Catatan">
+                            <field name="note" placeholder="Catatan tambahan..."/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="activity_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Order Tree -->
+    <record id="view_restoran_order_tree" model="ir.ui.view">
+        <field name="name">restoran.order.tree</field>
+        <field name="model">restoran.order</field>
+        <field name="arch" type="xml">
+            <tree string="Orders" decoration-success="state=='done'"
+                  decoration-danger="state=='cancelled'"
+                  decoration-info="state=='preparing'">
+                <field name="name"/>
+                <field name="cabang_id"/>
+                <field name="order_date"/>
+                <field name="customer_name"/>
+                <field name="order_type"/>
+                <field name="table_number"/>
+                <field name="total_items"/>
+                <field name="total_amount" widget="monetary"/>
+                <field name="payment_method"/>
+                <field name="state"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Order Search -->
+    <record id="view_restoran_order_search" model="ir.ui.view">
+        <field name="name">restoran.order.search</field>
+        <field name="model">restoran.order</field>
+        <field name="arch" type="xml">
+            <search string="Cari Order">
+                <field name="name"/>
+                <field name="customer_name"/>
+                <field name="cabang_id"/>
+                <filter name="today" string="Hari Ini"
+                        domain="[('order_date','&gt;=', (context_today()).strftime('%Y-%m-%d')),
+                                 ('order_date','&lt;', (context_today() + relativedelta(days=1)).strftime('%Y-%m-%d'))]"/>
+                <separator/>
+                <filter name="dine_in" string="Dine In" domain="[('order_type','=','dine_in')]"/>
+                <filter name="take_away" string="Take Away" domain="[('order_type','=','take_away')]"/>
+                <filter name="delivery" string="Delivery" domain="[('order_type','=','delivery')]"/>
+                <separator/>
+                <filter name="draft" string="Draft" domain="[('state','=','draft')]"/>
+                <filter name="preparing" string="Sedang Disiapkan" domain="[('state','=','preparing')]"/>
+                <filter name="done" string="Selesai" domain="[('state','=','done')]"/>
+                <group expand="0" string="Group By">
+                    <filter name="group_cabang" string="Cabang" context="{'group_by':'cabang_id'}"/>
+                    <filter name="group_state" string="Status" context="{'group_by':'state'}"/>
+                    <filter name="group_type" string="Tipe Order" context="{'group_by':'order_type'}"/>
+                    <filter name="group_date" string="Tanggal" context="{'group_by':'order_date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_restoran_order" model="ir.actions.act_window">
+        <field name="name">Orders</field>
+        <field name="res_model">restoran.order</field>
+        <field name="view_mode">tree,form</field>
+        <field name="context">{'search_default_today': 1}</field>
+    </record>
+</odoo>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Form View -->
+    <record id="view_restoran_cabang_form" model="ir.ui.view">
+        <field name="name">restoran.cabang.form</field>
+        <field name="model">restoran.cabang</field>
+        <field name="arch" type="xml">
+            <form string="Cabang Restoran">
+                <header>
+                    <field name="is_open" widget="boolean_toggle"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="Nama Cabang"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="code"/>
+                            <field name="phone"/>
+                            <field name="manager_id"/>
+                            <field name="company_id" groups="base.group_multi_company"/>
+                        </group>
+                        <group>
+                            <field name="address"/>
+                            <field name="total_menu"/>
+                            <field name="total_order_today"/>
+                            <field name="revenue_today" widget="monetary"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Menu" name="menu_page">
+                            <field name="menu_ids">
+                                <tree>
+                                    <field name="name"/>
+                                    <field name="kategori_id"/>
+                                    <field name="price" widget="monetary"/>
+                                    <field name="available"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids"/>
+                    <field name="message_ids"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Tree View -->
+    <record id="view_restoran_cabang_tree" model="ir.ui.view">
+        <field name="name">restoran.cabang.tree</field>
+        <field name="model">restoran.cabang</field>
+        <field name="arch" type="xml">
+            <tree string="Cabang Restoran">
+                <field name="code"/>
+                <field name="name"/>
+                <field name="phone"/>
+                <field name="manager_id"/>
+                <field name="is_open"/>
+                <field name="total_menu"/>
+                <field name="total_order_today"/>
+                <field name="revenue_today" widget="monetary"/>
+            </tree>
+        </field>
+    </record>
+
+    <!-- Action -->
+    <record id="action_restoran_cabang" model="ir.actions.act_window">
+        <field name="name">Cabang</field>
+        <field name="res_model">restoran.cabang</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

@@ -1,0 +1,6 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_restoran_cabang_user,restoran.cabang.user,model_restoran_cabang,base.group_user,1,1,1,1
+access_restoran_menu_kategori_user,restoran.menu.kategori.user,model_restoran_menu_kategori,base.group_user,1,1,1,1
+access_restoran_menu_user,restoran.menu.user,model_restoran_menu,base.group_user,1,1,1,1
+access_restoran_order_user,restoran.order.user,model_restoran_order,base.group_user,1,1,1,1
+access_restoran_order_line_user,restoran.order.line.user,model_restoran_order_line,base.group_user,1,1,1,1
