@@ -16,6 +16,7 @@
     'data': [
         'security/ir.model.access.csv',
         'data/demo_data.xml',
+        'data/inventory_demo_data.xml',
         'views/cabang_view.xml',
         'views/menu_view.xml',
         'views/bahan_view.xml',
