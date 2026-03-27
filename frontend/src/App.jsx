@@ -73,7 +73,7 @@ export default function App() {
       { id: "dashboard", icon: "📊", label: "Ringkasan Hari Ini" },
       { id: "pos", icon: "🛒", label: "Kasir (POS)" },
       { id: "orders", icon: "📋", label: "Order List", badge: activeOrdersCount },
-      { id: "kitchen", icon: "👨‍🍳", label: "Kitchen Display" },
+      { id: "kitchen", icon: "🍽️", label: "Kitchen Display" },
     ];
 
   // 1. Tampilkan Layar Login Jika Belum Masuk

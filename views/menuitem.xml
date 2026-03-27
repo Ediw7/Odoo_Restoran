@@ -41,4 +41,10 @@
               parent="menu_restoran_master"
               action="action_restoran_menu_kategori"
               sequence="30"/>
+
+    <menuitem id="menu_restoran_bahan"
+              name="Bahan Baku"
+              parent="menu_restoran_master"
+              action="action_restoran_bahan"
+              sequence="40"/>
 </odoo>

@@ -4,3 +4,5 @@ access_restoran_menu_kategori_user,restoran.menu.kategori.user,model_restoran_me
 access_restoran_menu_user,restoran.menu.user,model_restoran_menu,base.group_user,1,1,1,1
 access_restoran_order_user,restoran.order.user,model_restoran_order,base.group_user,1,1,1,1
 access_restoran_order_line_user,restoran.order.line.user,model_restoran_order_line,base.group_user,1,1,1,1
+access_restoran_bahan_user,restoran.bahan.user,model_restoran_bahan,base.group_user,1,1,1,1
+access_restoran_menu_bom_line_user,restoran.menu.bom.line.user,model_restoran_menu_bom_line,base.group_user,1,1,1,1

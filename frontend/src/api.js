@@ -41,7 +41,19 @@ export const api = {
         return apiFetch(url);
     },
     getKategori: () => apiFetch('/api/kategori'),
-    getOrders: () => apiFetch('/api/orders'),
+    getOrders: (cabangId, state) => {
+        let url = '/api/orders';
+        const params = [];
+        if (cabangId) params.push(`cabang_id=${cabangId}`);
+        if (state && state !== 'all') params.push(`state=${state}`);
+        if (params.length) url += '?' + params.join('&');
+        return apiFetch(url);
+    },
+    getChartData: (cabangId, days = 7) => {
+        let url = `/api/dashboard/chart?days=${days}`;
+        if (cabangId) url += `&cabang_id=${cabangId}`;
+        return apiFetch(url);
+    },
     createOrder: (payload) => apiFetch('/api/orders_create', {
         method: 'POST',
         body: JSON.stringify(payload)

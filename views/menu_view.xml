@@ -65,8 +65,32 @@
                             <field name="is_spicy"/>
                             <field name="is_bestseller"/>
                         </group>
+                        <group string="📦 Manajemen Stok">
+                            <field name="use_stock"/>
+                            <field name="stock_qty" invisible="not use_stock"/>
+                            <field name="min_stock" invisible="not use_stock"/>
+                            <field name="stock_status" widget="badge" invisible="not use_stock"
+                                   decoration-success="stock_status == 'in_stock'"
+                                   decoration-warning="stock_status == 'low_stock'"
+                                   decoration-danger="stock_status == 'out_of_stock'"/>
+                        </group>
                     </group>
-                    <field name="description" placeholder="Deskripsi menu..."/>
+                    <notebook>
+                        <page string="Deskripsi">
+                            <field name="description" placeholder="Deskripsi menu..."/>
+                        </page>
+                        <page string="📋 Komposisi Bahan (BOM)">
+                            <field name="bom_line_ids">
+                                <tree editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="bahan_id"/>
+                                    <field name="qty"/>
+                                    <field name="uom"/>
+                                    <field name="available_portions"/>
+                                </tree>
+                            </field>
+                        </page>
+                    </notebook>
                 </sheet>
                 <div class="oe_chatter">
                     <field name="message_ids"/>
@@ -80,13 +104,20 @@
         <field name="name">restoran.menu.tree</field>
         <field name="model">restoran.menu</field>
         <field name="arch" type="xml">
-            <tree string="Menu Restoran">
+            <tree string="Menu Restoran"
+                  decoration-danger="stock_status == 'out_of_stock'"
+                  decoration-warning="stock_status == 'low_stock'">
                 <field name="sequence" widget="handle"/>
                 <field name="code"/>
                 <field name="name"/>
                 <field name="kategori_id"/>
                 <field name="cabang_id"/>
                 <field name="price" widget="monetary"/>
+                <field name="stock_qty"/>
+                <field name="stock_status" widget="badge"
+                       decoration-success="stock_status == 'in_stock'"
+                       decoration-warning="stock_status == 'low_stock'"
+                       decoration-danger="stock_status == 'out_of_stock'"/>
                 <field name="available"/>
                 <field name="tag"/>
             </tree>

@@ -404,3 +404,112 @@ class RestoranAPI(http.Controller):
             return self._json_response({'status': 'success', 'data': dashboard})
         except Exception as e:
             return self._json_response({'status': 'error', 'message': str(e)}, 500)
+
+    # ==========================================
+    # API CHART DATA (Revenue + Analytics)
+    # ==========================================
+    @http.route('/api/dashboard/chart', type='http', auth='public', methods=['GET', 'OPTIONS'], csrf=False)
+    def get_dashboard_chart(self, **kwargs):
+        if request.httprequest.method == 'OPTIONS':
+            return self._cors_preflight()
+        try:
+            cabang_id = kwargs.get('cabang_id')
+            days = int(kwargs.get('days', 7))
+
+            from datetime import timedelta
+            from collections import Counter
+            today = Date.today()
+            start_date = today - timedelta(days=days - 1)
+
+            order_domain = [
+                ('state', '=', 'done'),
+                ('order_date', '>=', start_date.strftime('%Y-%m-%d 00:00:00')),
+                ('order_date', '<=', today.strftime('%Y-%m-%d 23:59:59')),
+            ]
+            if cabang_id:
+                order_domain.append(('cabang_id', '=', int(cabang_id)))
+
+            all_orders = request.env['restoran.order'].sudo().search(order_domain)
+
+            # ---- 1. Daily Revenue ----
+            daily_data = {}
+            for i in range(days):
+                d = start_date + timedelta(days=i)
+                day_key = d.strftime('%Y-%m-%d')
+                day_label = d.strftime('%d %b')
+                daily_data[day_key] = {
+                    'date': day_key,
+                    'label': day_label,
+                    'revenue': 0,
+                    'orders': 0,
+                }
+
+            for order in all_orders:
+                if order.order_date:
+                    day_key = order.order_date.date().strftime('%Y-%m-%d')
+                    if day_key in daily_data:
+                        daily_data[day_key]['revenue'] += order.total_amount
+                        daily_data[day_key]['orders'] += 1
+
+            chart_data = list(daily_data.values())
+
+            # ---- 2. Top Menu (Terlaris) ----
+            menu_counter = Counter()
+            menu_revenue = Counter()
+            for order in all_orders:
+                for line in order.line_ids:
+                    menu_counter[line.menu_id.id] += line.qty
+                    menu_revenue[line.menu_id.id] += line.subtotal
+
+            top_menu_ids = [mid for mid, _ in menu_counter.most_common(5)]
+            top_menu = []
+            for mid in top_menu_ids:
+                menu = request.env['restoran.menu'].sudo().browse(mid)
+                if menu.exists():
+                    top_menu.append({
+                        'id': menu.id,
+                        'name': menu.name,
+                        'qty_sold': menu_counter[mid],
+                        'revenue': menu_revenue[mid],
+                        'kategori': menu.kategori_id.name if menu.kategori_id else '',
+                    })
+
+            # ---- 3. Payment Breakdown ----
+            payment_counter = Counter()
+            payment_revenue = Counter()
+            for order in all_orders:
+                method = order.payment_method or 'cash'
+                payment_counter[method] += 1
+                payment_revenue[method] += order.total_amount
+
+            payment_labels = {
+                'cash': 'Tunai', 'card': 'Kartu', 'qris': 'QRIS', 'transfer': 'Transfer'
+            }
+            payment_breakdown = []
+            total_orders_count = len(all_orders)
+            for method, count in payment_counter.most_common():
+                payment_breakdown.append({
+                    'method': method,
+                    'label': payment_labels.get(method, method),
+                    'count': count,
+                    'revenue': payment_revenue[method],
+                    'percentage': round((count / total_orders_count * 100), 1) if total_orders_count > 0 else 0,
+                })
+
+            # ---- 4. Summary ----
+            total_rev = sum(o.total_amount for o in all_orders)
+            avg_order = total_rev / len(all_orders) if all_orders else 0
+
+            return self._json_response({'status': 'success', 'data': {
+                'chart': chart_data,
+                'top_menu': top_menu,
+                'payment_breakdown': payment_breakdown,
+                'summary': {
+                    'total_revenue': total_rev,
+                    'total_orders': len(all_orders),
+                    'avg_order_value': avg_order,
+                }
+            }})
+        except Exception as e:
+            _logger.error(f"Error getting chart data: {e}")
+            return self._json_response({'status': 'error', 'message': str(e)}, 500)

@@ -64,6 +64,33 @@ class RestoranMenu(models.Model):
         string='Margin Keuntungan (%)'
     )
 
+    # ========== STOCK MANAGEMENT ==========
+    stock_qty = fields.Float(string='Stok', default=0, tracking=True)
+    min_stock = fields.Float(string='Stok Minimum', default=5,
+                             help='Menu akan ditandai "Menipis" jika stok kurang dari angka ini')
+    stock_status = fields.Selection(
+        compute='_compute_stock_status', store=True,
+        selection=[
+            ('in_stock', 'Tersedia'),
+            ('low_stock', 'Menipis'),
+            ('out_of_stock', 'Habis'),
+        ], string='Status Stok'
+    )
+    use_stock = fields.Boolean(string='Gunakan Manajemen Stok', default=True,
+                               help='Jika diaktifkan, stok akan berkurang setiap order dikonfirmasi')
+
+    # ========== BILL OF MATERIALS (BOM) ==========
+    bom_line_ids = fields.One2many(
+        'restoran.menu.bom.line', 'menu_id',
+        string='Komposisi Bahan (BOM)'
+    )
+    bom_count = fields.Integer(compute='_compute_bom_count', string='Jumlah Bahan')
+
+    @api.depends('bom_line_ids')
+    def _compute_bom_count(self):
+        for rec in self:
+            rec.bom_count = len(rec.bom_line_ids)
+
     @api.depends('price', 'cost')
     def _compute_profit_margin(self):
         for rec in self:
@@ -72,6 +99,54 @@ class RestoranMenu(models.Model):
             else:
                 rec.profit_margin = 0.0
 
+    @api.depends('stock_qty', 'min_stock', 'use_stock')
+    def _compute_stock_status(self):
+        for rec in self:
+            if not rec.use_stock:
+                rec.stock_status = 'in_stock'
+            elif rec.stock_qty <= 0:
+                rec.stock_status = 'out_of_stock'
+            elif rec.stock_qty <= rec.min_stock:
+                rec.stock_status = 'low_stock'
+            else:
+                rec.stock_status = 'in_stock'
+
+    def action_add_stock(self, qty):
+        """Tambah stok menu"""
+        for rec in self:
+            rec.stock_qty += qty
+            if rec.stock_qty > 0 and not rec.available:
+                rec.available = True
+
+    def _deduct_stock(self, qty):
+        """Kurangi stok menu saat order dikonfirmasi"""
+        for rec in self:
+            if not rec.use_stock:
+                return
+            if rec.stock_qty < qty:
+                raise models.ValidationError(
+                    f'Stok "{rec.name}" tidak cukup! Sisa: {rec.stock_qty}, dibutuhkan: {qty}'
+                )
+            rec.stock_qty -= qty
+            # Auto-set unavailable jika stok habis
+            if rec.stock_qty <= 0:
+                rec.available = False
+
+    def _deduct_bom_stock(self, portions=1):
+        """Kurangi stok bahan baku berdasarkan BOM"""
+        for rec in self:
+            for bom_line in rec.bom_line_ids:
+                needed = bom_line.qty * portions
+                bahan = bom_line.bahan_id
+                if bahan.stock_qty < needed:
+                    raise models.ValidationError(
+                        f'Bahan "{bahan.name}" tidak cukup! '
+                        f'Sisa: {bahan.stock_qty} {bahan.uom}, '
+                        f'dibutuhkan: {needed} {bahan.uom} untuk {portions} porsi "{rec.name}"'
+                    )
+                bahan.stock_qty -= needed
+
     _sql_constraints = [
         ('price_positive', 'CHECK(price >= 0)', 'Harga tidak boleh negatif!'),
     ]
+

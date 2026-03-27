@@ -18,6 +18,7 @@
         'data/demo_data.xml',
         'views/cabang_view.xml',
         'views/menu_view.xml',
+        'views/bahan_view.xml',
         'views/order_view.xml',
         'views/res_users_view.xml',
         'views/menuitem.xml',

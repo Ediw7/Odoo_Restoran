@@ -48,7 +48,8 @@ class RestoranOrder(models.Model):
         ('card', 'Kartu Debit/Kredit'),
         ('qris', 'QRIS'),
         ('transfer', 'Transfer Bank'),
-    ], string='Metode Pembayaran', default='cash')
+    ], string='Metode Pembayaran')  # Default dihapus, diisi saat "Selesai"
+    paid_date = fields.Datetime(string='Tanggal Bayar', readonly=True)
 
     # computed
     subtotal = fields.Float(compute='_compute_amounts', store=True, string='Subtotal')
@@ -82,6 +83,16 @@ class RestoranOrder(models.Model):
             order.total_items = sum(order.line_ids.mapped('qty'))
 
     def action_confirm(self):
+        """Konfirmasi order + kurangi stok menu dan bahan baku"""
+        for order in self:
+            for line in order.line_ids:
+                menu = line.menu_id
+                # Kurangi stok menu
+                if menu.use_stock:
+                    menu._deduct_stock(line.qty)
+                # Kurangi stok bahan baku (BOM)
+                if menu.bom_line_ids:
+                    menu._deduct_bom_stock(portions=line.qty)
         self.write({'state': 'confirmed'})
 
     def action_prepare(self):
@@ -90,13 +101,35 @@ class RestoranOrder(models.Model):
     def action_ready(self):
         self.write({'state': 'ready'})
 
-    def action_done(self):
+    def action_done(self, payment_method=None):
+        """Selesaikan order — pembayaran dilakukan di sini"""
+        for order in self:
+            if payment_method:
+                order.payment_method = payment_method
+            if not order.payment_method:
+                raise ValidationError(
+                    'Metode pembayaran harus dipilih sebelum menyelesaikan order!'
+                )
+            order.paid_date = fields.Datetime.now()
         self.write({'state': 'done'})
 
     def action_cancel(self):
+        """Batalkan order — kembalikan stok jika sudah dikonfirmasi"""
         for order in self:
             if order.state == 'done':
                 raise ValidationError('Order yang sudah selesai tidak bisa dibatalkan!')
+            # Kembalikan stok jika order sudah dikonfirmasi
+            if order.state in ('confirmed', 'preparing', 'ready'):
+                for line in order.line_ids:
+                    menu = line.menu_id
+                    if menu.use_stock:
+                        menu.stock_qty += line.qty
+                        if menu.stock_qty > 0:
+                            menu.available = True
+                    # Kembalikan stok bahan baku
+                    if menu.bom_line_ids:
+                        for bom_line in menu.bom_line_ids:
+                            bom_line.bahan_id.stock_qty += bom_line.qty * line.qty
         self.write({'state': 'cancelled'})
 
     def action_reset_draft(self):
