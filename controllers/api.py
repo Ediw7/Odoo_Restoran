@@ -255,6 +255,28 @@ class RestoranAPI(http.Controller):
         except Exception as e:
             return self._json_response({'status': 'error', 'message': str(e)}, 500)
 
+    @http.route('/api/menu_create', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
+    def menu_create(self, **kwargs):
+        if request.httprequest.method == 'OPTIONS':
+            return self._cors_preflight()
+        try:
+            data_str = request.httprequest.data.decode('utf-8')
+            data = json.loads(data_str) if data_str else {}
+            if not data.get('name') or not data.get('kategori_id') or not data.get('price'):
+                return self._json_response({'status': 'error', 'message': 'Nama, Kategori, dan Harga wajib diisi'}, 400)
+            
+            menu = request.env['restoran.menu'].sudo().create({
+                'name': data.get('name'),
+                'kategori_id': int(data.get('kategori_id')),
+                'price': float(data.get('price')),
+                'use_stock': data.get('use_stock', True),
+                'stock_qty': float(data.get('stock_qty', 0)),
+                'available': True,
+            })
+            return self._json_response({'status': 'success', 'message': 'Menu berhasil ditambahkan', 'data': {'id': menu.id}})
+        except Exception as e:
+            return self._json_response({'status': 'error', 'message': str(e)}, 500)
+
     # ==========================================
     # API ORDERS
     # ==========================================

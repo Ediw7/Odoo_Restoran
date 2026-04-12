@@ -63,6 +63,10 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ menu_id: menuId, qty })
     }),
+    createMenu: (payload) => apiFetch('/api/menu_create', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+    }),
 };
 
 export const formatRupiah = (number) => {

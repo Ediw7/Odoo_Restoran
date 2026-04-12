@@ -3,6 +3,8 @@ import { api, formatRupiah } from '../api';
 
 export default function Inventory({ activeCabangId }) {
     const [menus, setMenus] = useState([]);
+    const [kategoris, setKategoris] = useState([]);
+    const [activeKategori, setActiveKategori] = useState('all');
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [updateQty, setUpdateQty] = useState({});
@@ -10,10 +12,21 @@ export default function Inventory({ activeCabangId }) {
     const [selectedBom, setSelectedBom] = useState(null);
     const [notification, setNotification] = useState(null);
 
+    // Modal state for Add Menu
+    const [showAddMenu, setShowAddMenu] = useState(false);
+    const [newMenu, setNewMenu] = useState({ name: '', price: '', kategori_id: '' });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
+    useEffect(() => { fetchKategoris(); }, []);
     useEffect(() => { fetchInventory(); }, [activeCabangId]);
     useEffect(() => {
         if (notification) { const t = setTimeout(() => setNotification(null), 3000); return () => clearTimeout(t); }
     }, [notification]);
+
+    const fetchKategoris = async () => {
+        const res = await api.getKategori();
+        if (res?.status === 'success') setKategoris(res.data);
+    };
 
     const fetchInventory = async () => {
         setLoading(true);
@@ -38,7 +51,29 @@ export default function Inventory({ activeCabangId }) {
         setIsSaving(null);
     };
 
-    const filtered = menus.filter(m => m.name.toLowerCase().includes(search.toLowerCase()));
+    const handleCreateMenu = async (e) => {
+        e.preventDefault();
+        if (!newMenu.name || !newMenu.price || !newMenu.kategori_id) {
+            return setNotification({ type: 'error', message: "Harap isi semua field" });
+        }
+        setIsSubmitting(true);
+        const res = await api.createMenu({ ...newMenu, use_stock: true, stock_qty: 0 });
+        if (res?.status === 'success') {
+            setNotification({ type: 'success', message: "Menu berhasil ditambahkan" });
+            setShowAddMenu(false);
+            setNewMenu({ name: '', price: '', kategori_id: '' });
+            fetchInventory();
+        } else {
+            setNotification({ type: 'error', message: res?.message || "Gagal menambah menu" });
+        }
+        setIsSubmitting(false);
+    };
+
+    const filtered = menus.filter(m => {
+        const matchSearch = m.name.toLowerCase().includes(search.toLowerCase());
+        const matchKategori = activeKategori === 'all' || m.kategori?.id === parseInt(activeKategori);
+        return matchSearch && matchKategori;
+    });
 
     return (
         <div className="animate-fade-in max-w-[1600px] mx-auto pb-10 relative">
@@ -48,10 +83,28 @@ export default function Inventory({ activeCabangId }) {
                 </div>
             )}
 
-            <div className="mb-5 flex flex-col md:flex-row md:items-center justify-between gap-3">
-                <p className="text-sm text-gray-400">Klik item untuk lihat komposisi bahan (BOM)</p>
-                <input type="text" placeholder="Cari menu..." value={search} onChange={e => setSearch(e.target.value)}
-                    className="w-full md:w-64 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-400 placeholder:text-gray-400" />
+            <div className="mb-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex-1 flex gap-2 overflow-x-auto pb-1 scrollbar-none items-center">
+                    <button onClick={() => setActiveKategori('all')}
+                        className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${activeKategori === 'all' ? 'bg-orange-500 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                        Semua
+                    </button>
+                    {kategoris.map(k => (
+                        <button key={k.id} onClick={() => setActiveKategori(k.id)}
+                            className={`shrink-0 px-4 py-2 rounded-full text-sm font-medium transition-all ${activeKategori === k.id ? 'bg-orange-500 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                            {k.name}
+                        </button>
+                    ))}
+                </div>
+
+                <div className="flex items-center gap-2">
+                    <input type="text" placeholder="Cari menu..." value={search} onChange={e => setSearch(e.target.value)}
+                        className="w-full md:w-56 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-400 placeholder:text-gray-400" />
+                    <button onClick={() => setShowAddMenu(true)}
+                        className="shrink-0 px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 transition-colors shadow-sm">
+                        + Tambah Menu
+                    </button>
+                </div>
             </div>
 
             {loading ? (
@@ -59,12 +112,12 @@ export default function Inventory({ activeCabangId }) {
             ) : filtered.length === 0 ? (
                 <div className="py-20 text-center bg-white rounded-xl border border-gray-100">
                     <p className="font-medium text-gray-500">Tidak ada data stok</p>
-                    <p className="text-sm text-gray-400 mt-1">Aktifkan "Gunakan Stok" di Odoo.</p>
+                    <p className="text-sm text-gray-400 mt-1">Aktifkan "Gunakan Stok" di Odoo atau klik Tambah Menu.</p>
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                     {filtered.map(m => (
-                        <div key={m.id} onClick={() => setSelectedBom({ name: m.name, lines: m.bom_line_ids })}
+                        <div key={m.id} onClick={() => setSelectedBom({ name: m.name, lines: m.bom_line_ids || [] })}
                             className="bg-white border border-gray-100 rounded-xl p-4 hover:border-gray-200 hover:shadow-sm transition-all flex flex-col cursor-pointer">
                             <div className="flex justify-between items-start mb-3">
                                 <div>
@@ -129,6 +182,47 @@ export default function Inventory({ activeCabangId }) {
                             <button onClick={() => setSelectedBom(null)} className="px-5 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors">Tutup</button>
                         </div>
                     </div>
+                </div>
+            )}
+
+            {/* Modal Tambah Menu */}
+            {showAddMenu && (
+                <div className="fixed inset-0 bg-black/30 z-[600] flex items-center justify-center p-6 animate-fade-in" onClick={() => setShowAddMenu(false)}>
+                    <form onSubmit={handleCreateMenu} className="bg-white rounded-2xl w-full max-w-sm shadow-lg overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
+                        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                            <h2 className="font-semibold text-gray-800">Tambah Menu Baru</h2>
+                            <button type="button" onClick={() => setShowAddMenu(false)} className="text-gray-400 hover:text-gray-600 text-lg">×</button>
+                        </div>
+                        <div className="p-5 space-y-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1.5">Kategori</label>
+                                <select required value={newMenu.kategori_id} onChange={e => setNewMenu({ ...newMenu, kategori_id: e.target.value })}
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-orange-400">
+                                    <option value="">Pilih Kategori</option>
+                                    {kategoris.map(k => <option key={k.id} value={k.id}>{k.name}</option>)}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1.5">Nama Menu</label>
+                                <input required type="text" placeholder="Misal: Es Teh Manis" value={newMenu.name} onChange={e => setNewMenu({ ...newMenu, name: e.target.value })}
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-orange-400" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1.5">Harga Dasar (Rp)</label>
+                                <input required type="number" placeholder="0" value={newMenu.price} onChange={e => setNewMenu({ ...newMenu, price: e.target.value })}
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-orange-400" />
+                            </div>
+                            <div className="p-3 bg-blue-50 text-blue-700 text-xs rounded-lg mt-2">
+                                Menu ini otomatis disetel menggunakan stok dengan sisa 0 porsi. Silakan tambah stok setelah dibuat.
+                            </div>
+                        </div>
+                        <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-2">
+                            <button type="button" onClick={() => setShowAddMenu(false)} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Batal</button>
+                            <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-50">
+                                {isSubmitting ? 'Menyimpan...' : 'Simpan Menu'}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             )}
         </div>
