@@ -9,6 +9,11 @@ export default function BahanBaku() {
     const [isSaving, setIsSaving] = useState(null);
     const [notification, setNotification] = useState(null);
 
+    // Modal Add Master Bahan state
+    const [showAddModal, setShowAddModal] = useState(false);
+    const [newBahan, setNewBahan] = useState({ name: '', uom: 'pcs' });
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     useEffect(() => { fetchBahan(); }, []);
     useEffect(() => {
         if (notification) { const t = setTimeout(() => setNotification(null), 3000); return () => clearTimeout(t); }
@@ -37,6 +42,24 @@ export default function BahanBaku() {
         setIsSaving(null);
     };
 
+    const handleCreateBahan = async (e) => {
+        e.preventDefault();
+        if (!newBahan.name || !newBahan.uom) {
+            return setNotification({ type: 'error', message: "Nama & Satuan wajib diisi" });
+        }
+        setIsSubmitting(true);
+        const res = await api.createBahanBaku(newBahan);
+        if (res?.status === 'success') {
+            setNotification({ type: 'success', message: "Master Bahan Baku berhasil dibuat" });
+            setShowAddModal(false);
+            setNewBahan({ name: '', uom: 'pcs' });
+            fetchBahan();
+        } else {
+            setNotification({ type: 'error', message: res?.message || "Gagal membuat master bahan" });
+        }
+        setIsSubmitting(false);
+    };
+
     const filtered = bahan.filter(b => b.name.toLowerCase().includes(search.toLowerCase()));
 
     return (
@@ -58,6 +81,10 @@ export default function BahanBaku() {
                 <div className="flex items-center gap-2">
                     <input type="text" placeholder="Cari bahan baku..." value={search} onChange={e => setSearch(e.target.value)}
                         className="w-full md:w-64 bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-400 placeholder:text-gray-400" />
+                    <button onClick={() => setShowAddModal(true)}
+                        className="shrink-0 px-4 py-2 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 transition-colors shadow-sm">
+                        + Master Bahan
+                    </button>
                 </div>
             </div>
 
@@ -108,6 +135,44 @@ export default function BahanBaku() {
                             </div>
                         );
                     })}
+                </div>
+            )}
+            {/* Modal Tambah Bahan Baku */}
+            {showAddModal && (
+                <div className="fixed inset-0 bg-black/30 z-[600] flex items-center justify-center p-6 animate-fade-in" onClick={() => setShowAddModal(false)}>
+                    <form onSubmit={handleCreateBahan} className="bg-white rounded-2xl w-full max-w-sm shadow-lg overflow-hidden animate-scale-in" onClick={e => e.stopPropagation()}>
+                        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                            <h2 className="font-semibold text-gray-800">Tambah Master Bahan</h2>
+                            <button type="button" onClick={() => setShowAddModal(false)} className="text-gray-400 hover:text-gray-600 text-lg">×</button>
+                        </div>
+                        <div className="p-5 space-y-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1.5">Nama Bahan Mentah</label>
+                                <input required type="text" placeholder="Misal: Beras Premium" value={newBahan.name} onChange={e => setNewBahan({ ...newBahan, name: e.target.value })}
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-orange-400" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1.5">Satuan (UoM)</label>
+                                <select required value={newBahan.uom} onChange={e => setNewBahan({ ...newBahan, uom: e.target.value })}
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-orange-400">
+                                    <option value="kg">Kilogram (kg)</option>
+                                    <option value="g">Gram (g)</option>
+                                    <option value="ltr">Liter (L)</option>
+                                    <option value="ml">Mililiter (ml)</option>
+                                    <option value="pcs">Pcs / Buah</option>
+                                    <option value="bks">Bungkus</option>
+                                    <option value="btl">Botol</option>
+                                    <option value="pack">Pack</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-2">
+                            <button type="button" onClick={() => setShowAddModal(false)} className="px-4 py-2 text-sm text-gray-500 hover:text-gray-700">Batal</button>
+                            <button type="submit" disabled={isSubmitting} className="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-medium hover:bg-orange-600 disabled:opacity-50">
+                                {isSubmitting ? 'Menyimpan...' : 'Simpan Bahan'}
+                            </button>
+                        </div>
+                    </form>
                 </div>
             )}
         </div>

@@ -244,6 +244,26 @@ class RestoranAPI(http.Controller):
         except Exception as e:
             return self._json_response({'status': 'error', 'message': str(e)}, 500)
 
+    @http.route('/api/bahan_baku_create', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
+    def bahan_baku_create(self, **kwargs):
+        if request.httprequest.method == 'OPTIONS':
+            return self._cors_preflight()
+        try:
+            data_str = request.httprequest.data.decode('utf-8')
+            data = json.loads(data_str) if data_str else {}
+            if not data.get('name') or not data.get('uom'):
+                return self._json_response({'status': 'error', 'message': 'Nama dan Satuan wajib diisi'}, 400)
+            
+            bahan = request.env['restoran.bahan'].sudo().create({
+                'name': data.get('name'),
+                'uom': data.get('uom'),
+                'stock_qty': float(data.get('stock_qty', 0)),
+                'min_stock': float(data.get('min_stock', 5)),
+            })
+            return self._json_response({'status': 'success', 'message': 'Bahan Baku berhasil ditambahkan', 'data': {'id': bahan.id}})
+        except Exception as e:
+            return self._json_response({'status': 'error', 'message': str(e)}, 500)
+
     @http.route('/api/menu', type='http', auth='public', methods=['GET', 'OPTIONS'], csrf=False)
     def get_menu_list(self, **kwargs):
         if request.httprequest.method == 'OPTIONS':
