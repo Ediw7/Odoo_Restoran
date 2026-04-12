@@ -7,9 +7,9 @@ import { api, formatRupiah, getStatusLabel, getStatusColor, getTypeLabel, format
 function RevenueChart({ data, loading, summary }) {
     if (!data || data.length === 0) {
         return (
-            <div className="flex items-center justify-center h-52 text-sm text-slate-400">
+            <div className="flex items-center justify-center h-52 text-sm text-gray-400">
                 <div className="text-center">
-                    <span className="text-3xl block mb-2">📭</span>
+
                     Belum ada data pendapatan
                 </div>
             </div>
@@ -50,15 +50,15 @@ function RevenueChart({ data, loading, summary }) {
             {summary && (
                 <div className="flex flex-wrap gap-6 mb-5 px-1">
                     <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Pendapatan</p>
-                        <p className="text-xl font-black text-slate-800 mt-0.5">{formatRupiah(summary.total_revenue)}</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Pendapatan</p>
+                        <p className="text-xl font-black text-gray-800 mt-0.5">{formatRupiah(summary.total_revenue)}</p>
                     </div>
                     <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total Pesanan</p>
-                        <p className="text-xl font-black text-slate-800 mt-0.5">{summary.total_orders}</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total Pesanan</p>
+                        <p className="text-xl font-black text-gray-800 mt-0.5">{summary.total_orders}</p>
                     </div>
                     <div>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Rata-rata / Order</p>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Rata-rata / Order</p>
                         <p className="text-xl font-black text-emerald-600 mt-0.5">{formatRupiah(summary.avg_order_value)}</p>
                     </div>
                 </div>
@@ -131,7 +131,7 @@ function RevenueChart({ data, loading, summary }) {
 // ============================================
 function PaymentBreakdown({ data }) {
     if (!data || data.length === 0) {
-        return <div className="text-sm text-slate-400 text-center py-6">Belum ada data</div>;
+        return <div className="text-sm text-gray-400 text-center py-6">Belum ada data</div>;
     }
 
     const colors = {
@@ -140,7 +140,7 @@ function PaymentBreakdown({ data }) {
         'card': { bg: 'bg-blue-500', text: 'text-blue-600', light: 'bg-blue-50' },
         'transfer': { bg: 'bg-amber-500', text: 'text-amber-600', light: 'bg-amber-50' },
     };
-    const icons = { 'cash': '💵', 'qris': '📱', 'card': '💳', 'transfer': '🏦' };
+    const payLabels = { 'cash': 'Tunai', 'qris': 'QRIS', 'card': 'Kartu', 'transfer': 'TF' };
 
     return (
         <div className="space-y-3">
@@ -150,12 +150,12 @@ function PaymentBreakdown({ data }) {
                     <div key={i} className={`${c.light} rounded-xl px-4 py-3`}>
                         <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
-                                <span className="text-lg">{icons[item.method] || '💰'}</span>
-                                <span className="text-sm font-bold text-slate-700">{item.label}</span>
+                                <span className="text-lg">{payLabels?.[item.method] || item.method}</span>
+                                <span className="text-sm font-bold text-gray-700">{item.label}</span>
                             </div>
                             <div className="text-right">
                                 <span className={`text-sm font-black ${c.text}`}>{item.percentage}%</span>
-                                <span className="text-xs text-slate-400 ml-2">({item.count}x)</span>
+                                <span className="text-xs text-gray-400 ml-2">({item.count}x)</span>
                             </div>
                         </div>
                         {/* Progress bar */}
@@ -165,7 +165,7 @@ function PaymentBreakdown({ data }) {
                                 style={{ width: `${item.percentage}%` }}
                             />
                         </div>
-                        <p className="text-[11px] text-slate-500 font-medium mt-1.5">{formatRupiah(item.revenue)}</p>
+                        <p className="text-[11px] text-gray-500 font-medium mt-1.5">{formatRupiah(item.revenue)}</p>
                     </div>
                 );
             })}
@@ -178,16 +178,16 @@ function PaymentBreakdown({ data }) {
 // ============================================
 function TopMenuList({ data }) {
     if (!data || data.length === 0) {
-        return <div className="text-sm text-slate-400 text-center py-6">Belum ada data penjualan</div>;
+        return <div className="text-sm text-gray-400 text-center py-6">Belum ada data penjualan</div>;
     }
 
     const maxQty = Math.max(...data.map(d => d.qty_sold), 1);
-    const medals = ['🥇', '🥈', '🥉'];
+    const medals = ['1', '2', '3'];
 
     return (
         <div className="space-y-2">
             {data.map((item, i) => (
-                <div key={i} className="group relative overflow-hidden rounded-xl px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors">
+                <div key={i} className="group relative overflow-hidden rounded-xl px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors">
                     {/* Background fill */}
                     <div
                         className="absolute inset-y-0 left-0 bg-slate-200/40 transition-all duration-700 rounded-xl"
@@ -196,16 +196,16 @@ function TopMenuList({ data }) {
                     <div className="relative flex items-center justify-between">
                         <div className="flex items-center gap-3">
                             <span className="text-lg min-w-[24px] text-center">
-                                {i < 3 ? medals[i] : <span className="text-xs font-bold text-slate-400">#{i + 1}</span>}
+                                {i < 3 ? medals[i] : <span className="text-xs font-bold text-gray-400">#{i + 1}</span>}
                             </span>
                             <div>
-                                <p className="text-sm font-bold text-slate-700">{item.name}</p>
-                                <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{item.kategori}</p>
+                                <p className="text-sm font-bold text-gray-700">{item.name}</p>
+                                <p className="text-[10px] text-gray-400 font-medium uppercase tracking-wider">{item.kategori}</p>
                             </div>
                         </div>
                         <div className="text-right">
-                            <p className="text-sm font-black text-slate-800">{item.qty_sold} porsi</p>
-                            <p className="text-[11px] text-slate-400 font-medium">{formatRupiah(item.revenue)}</p>
+                            <p className="text-sm font-black text-gray-800">{item.qty_sold} porsi</p>
+                            <p className="text-[11px] text-gray-400 font-medium">{formatRupiah(item.revenue)}</p>
                         </div>
                     </div>
                 </div>
@@ -220,16 +220,16 @@ function TopMenuList({ data }) {
 function OrderDetailModal({ order, onClose }) {
     if (!order) return null;
     return (
-        <div className="fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-[200] flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-y-auto border border-slate-100 animate-fade-in" onClick={e => e.stopPropagation()}>
-                <div className="flex items-center justify-between p-5 border-b border-slate-100">
+        <div className="fixed inset-0 bg-gray-900/30 backdrop-blur-sm z-[200] flex items-center justify-center p-4" onClick={onClose}>
+            <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[80vh] overflow-y-auto border border-gray-100 animate-fade-in" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between p-5 border-b border-gray-100">
                     <div>
-                        <h3 className="font-bold text-slate-800 text-lg">{order.name}</h3>
-                        <p className="text-xs text-slate-400 mt-0.5">{new Date(order.order_date).toLocaleString('id-ID')}</p>
+                        <h3 className="font-bold text-gray-800 text-lg">{order.name}</h3>
+                        <p className="text-xs text-gray-400 mt-0.5">{new Date(order.order_date).toLocaleString('id-ID')}</p>
                     </div>
-                    <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400">✕</button>
+                    <button onClick={onClose} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-400">×</button>
                 </div>
-                <div className="p-5 grid grid-cols-2 gap-4 border-b border-slate-100">
+                <div className="p-5 grid grid-cols-2 gap-4 border-b border-gray-100">
                     {[
                         { label: 'Status', value: <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${getStatusColor(order.state)}`}>{getStatusLabel(order.state)}</span> },
                         { label: 'Tipe', value: getTypeLabel(order.order_type) },
@@ -239,36 +239,36 @@ function OrderDetailModal({ order, onClose }) {
                         { label: 'Pembayaran', value: (order.payment_method || '-').toUpperCase() },
                     ].map((item, i) => (
                         <div key={i}>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">{item.label}</p>
-                            <p className="text-sm font-semibold text-slate-700">{item.value}</p>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">{item.label}</p>
+                            <p className="text-sm font-semibold text-gray-700">{item.value}</p>
                         </div>
                     ))}
                 </div>
                 <div className="p-5">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-3">Detail Item</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-3">Detail Item</p>
                     <div className="space-y-2">
                         {order.lines?.map((line, i) => (
-                            <div key={i} className="flex items-center justify-between bg-slate-50 rounded-xl px-4 py-3">
+                            <div key={i} className="flex items-center justify-between bg-gray-50 rounded-xl px-4 py-3">
                                 <div>
-                                    <p className="text-sm font-semibold text-slate-700">{line.menu?.name}</p>
-                                    {line.note && <p className="text-[11px] text-slate-400 mt-0.5">📝 {line.note}</p>}
+                                    <p className="text-sm font-semibold text-gray-700">{line.menu?.name}</p>
+                                    {line.note && <p className="text-[11px] text-gray-400 mt-0.5">{line.note}</p>}
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-sm font-bold text-slate-700">{line.qty}x</p>
-                                    <p className="text-xs text-slate-400">{formatRupiah(line.subtotal)}</p>
+                                    <p className="text-sm font-bold text-gray-700">{line.qty}x</p>
+                                    <p className="text-xs text-gray-400">{formatRupiah(line.subtotal)}</p>
                                 </div>
                             </div>
                         ))}
                     </div>
                 </div>
-                <div className="p-5 bg-slate-50 rounded-b-2xl border-t border-slate-100">
-                    <div className="flex justify-between text-sm text-slate-500 mb-1">
+                <div className="p-5 bg-gray-50 rounded-b-2xl border-t border-gray-100">
+                    <div className="flex justify-between text-sm text-gray-500 mb-1">
                         <span>Subtotal</span><span>{formatRupiah(order.subtotal)}</span>
                     </div>
-                    <div className="flex justify-between text-sm text-slate-500 mb-2">
+                    <div className="flex justify-between text-sm text-gray-500 mb-2">
                         <span>Pajak (10%)</span><span>{formatRupiah(order.tax_amount)}</span>
                     </div>
-                    <div className="flex justify-between text-base font-bold text-slate-800 pt-2 border-t border-slate-200">
+                    <div className="flex justify-between text-base font-bold text-gray-800 pt-2 border-t border-gray-200">
                         <span>Total</span><span>{formatRupiah(order.total_amount)}</span>
                     </div>
                 </div>
@@ -343,9 +343,9 @@ export default function DashboardCabang({ cabangId }) {
         return (
             <div className="flex items-center justify-center h-full">
                 <div className="text-center max-w-md">
-                    <span className="text-5xl block mb-4">🏪</span>
-                    <h2 className="text-xl font-bold text-slate-800 mb-2">Cabang Belum Terpilih</h2>
-                    <p className="text-sm text-slate-500">
+
+                    <h2 className="text-xl font-bold text-gray-800 mb-2">Cabang Belum Terpilih</h2>
+                    <p className="text-sm text-gray-500">
                         User Anda belum di-assign ke cabang manapun.
                         Minta admin untuk mengatur <strong>"Cabang Restoran"</strong> di pengaturan user Odoo Anda.
                     </p>
@@ -357,8 +357,8 @@ export default function DashboardCabang({ cabangId }) {
     if (loading && !data) return (
         <div className="flex items-center justify-center h-full">
             <div className="flex flex-col items-center gap-3">
-                <div className="w-6 h-6 border-2 border-slate-200 border-t-slate-700 rounded-full animate-spin"></div>
-                <div className="text-sm font-medium text-slate-500">Memuat data cabang...</div>
+                <div className="w-6 h-6 border-2 border-gray-200 border-t-orange-700 rounded-full animate-spin"></div>
+                <div className="text-sm font-medium text-gray-500">Memuat data cabang...</div>
             </div>
         </div>
     );
@@ -370,8 +370,8 @@ export default function DashboardCabang({ cabangId }) {
     const myCabang = data.cabang_stats[0];
 
     const statusFilters = [
-        { value: 'all', label: 'Semua', color: 'bg-slate-100 text-slate-600' },
-        { value: 'draft', label: 'Draft', color: 'bg-slate-100 text-slate-500' },
+        { value: 'all', label: 'Semua', color: 'bg-gray-100 text-gray-600' },
+        { value: 'draft', label: 'Draft', color: 'bg-gray-100 text-gray-500' },
         { value: 'confirmed', label: 'Konfirmasi', color: 'bg-blue-100 text-blue-700' },
         { value: 'preparing', label: 'Disiapkan', color: 'bg-amber-100 text-amber-700' },
         { value: 'ready', label: 'Siap Saji', color: 'bg-emerald-100 text-emerald-700' },
@@ -382,21 +382,21 @@ export default function DashboardCabang({ cabangId }) {
     return (
         <div className="max-w-7xl mx-auto pb-10 animate-fade-in">
             {/* ========== HEADER ========== */}
-            <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-slate-100 pb-6">
+            <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-gray-100 pb-6">
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <span className={`w-2.5 h-2.5 rounded-full ${myCabang.is_open ? 'bg-emerald-500 animate-pulse' : 'bg-red-400'}`}></span>
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                             {myCabang.is_open ? 'Sedang Buka' : 'Tutup'}
                         </span>
                     </div>
-                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{myCabang.name}</h1>
-                    <p className="text-sm text-slate-400 mt-1">Dashboard Monitoring & Analitik</p>
+                    <h1 className="text-3xl font-bold text-gray-900 tracking-tight">{myCabang.name}</h1>
+                    <p className="text-sm text-gray-400 mt-1">Dashboard Monitoring & Analitik</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <span className="text-sm text-slate-400">Periode:</span>
+                    <span className="text-sm text-gray-400">Periode:</span>
                     <select value={period} onChange={(e) => setPeriod(e.target.value)}
-                        className="bg-white border border-slate-200 text-slate-800 text-sm font-medium rounded-lg px-4 py-2.5 outline-none focus:border-slate-400 cursor-pointer shadow-sm">
+                        className="bg-white border border-gray-200 text-gray-800 text-sm font-medium rounded-lg px-4 py-2.5 outline-none focus:border-orange-400 cursor-pointer shadow-sm">
                         <option value="today">Hari Ini</option>
                         <option value="month">Bulan Ini</option>
                         <option value="year">Tahun Ini</option>
@@ -406,26 +406,26 @@ export default function DashboardCabang({ cabangId }) {
             </div>
 
             {loading && data && (
-                <div className="text-xs text-slate-400 mb-4 animate-pulse font-medium">⏳ Memperbarui data...</div>
+                <div className="text-xs text-gray-400 mb-4 animate-pulse font-medium">Memperbarui data...</div>
             )}
 
             {/* ========== STAT CARDS ========== */}
             <div className={`grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8 transition-opacity ${loading ? 'opacity-50' : 'opacity-100'}`}>
-                <StatCard icon="💰" title="Pendapatan" value={formatRupiah(data.global.total_revenue)} />
-                <StatCard icon="📦" title="Pesanan Selesai" value={data.global.total_orders} />
-                <StatCard icon="🍽️" title="Menu Tersedia" value={data.global.total_menu_available} />
-                <StatCard icon="🔥" title="Order Aktif" value={activeOrders} highlight={activeOrders > 0} />
+                <StatCard title="Pendapatan" value={formatRupiah(data.global.total_revenue)} />
+                <StatCard title="Pesanan Selesai" value={data.global.total_orders} />
+                <StatCard title="Menu Tersedia" value={data.global.total_menu_available} />
+                <StatCard title="Order Aktif" value={activeOrders} highlight={activeOrders > 0} />
             </div>
 
             {/* ========== GRAFIK PENDAPATAN (Full Width) ========== */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm mb-8 overflow-hidden">
-                <div className="flex items-center justify-between p-5 border-b border-slate-100">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm mb-8 overflow-hidden">
+                <div className="flex items-center justify-between p-5 border-b border-gray-100">
                     <div>
-                        <h2 className="text-base font-bold text-slate-800 tracking-tight">📈 Tren Pendapatan</h2>
-                        <p className="text-xs text-slate-400 mt-0.5">Pendapatan harian dari pesanan selesai</p>
+                        <h2 className="text-base font-bold text-gray-800 tracking-tight">Tren Pendapatan</h2>
+                        <p className="text-xs text-gray-400 mt-0.5">Pendapatan harian dari pesanan selesai</p>
                     </div>
                     <select value={chartDays} onChange={(e) => setChartDays(parseInt(e.target.value))}
-                        className="bg-slate-50 border border-slate-200 text-sm font-medium text-slate-600 rounded-lg px-3 py-1.5 outline-none cursor-pointer">
+                        className="bg-gray-50 border border-gray-200 text-sm font-medium text-gray-600 rounded-lg px-3 py-1.5 outline-none cursor-pointer">
                         <option value={7}>7 Hari</option>
                         <option value={14}>14 Hari</option>
                         <option value={30}>30 Hari</option>
@@ -443,10 +443,10 @@ export default function DashboardCabang({ cabangId }) {
             {/* ========== 2-COLUMN: Menu Terlaris + Metode Pembayaran ========== */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 {/* Menu Terlaris */}
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                    <div className="p-5 border-b border-slate-100">
-                        <h2 className="text-base font-bold text-slate-800 tracking-tight">🏆 Menu Terlaris</h2>
-                        <p className="text-xs text-slate-400 mt-0.5">Top 5 menu paling laris ({chartDays} hari terakhir)</p>
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="p-5 border-b border-gray-100">
+                        <h2 className="text-base font-bold text-gray-800 tracking-tight">Menu Terlaris</h2>
+                        <p className="text-xs text-gray-400 mt-0.5">Top 5 menu paling laris ({chartDays} hari terakhir)</p>
                     </div>
                     <div className="p-4">
                         <TopMenuList data={analytics?.top_menu} />
@@ -454,10 +454,10 @@ export default function DashboardCabang({ cabangId }) {
                 </div>
 
                 {/* Metode Pembayaran */}
-                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                    <div className="p-5 border-b border-slate-100">
-                        <h2 className="text-base font-bold text-slate-800 tracking-tight">💳 Metode Pembayaran</h2>
-                        <p className="text-xs text-slate-400 mt-0.5">Breakdown pembayaran ({chartDays} hari terakhir)</p>
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="p-5 border-b border-gray-100">
+                        <h2 className="text-base font-bold text-gray-800 tracking-tight">Metode Pembayaran</h2>
+                        <p className="text-xs text-gray-400 mt-0.5">Breakdown pembayaran ({chartDays} hari terakhir)</p>
                     </div>
                     <div className="p-4">
                         <PaymentBreakdown data={analytics?.payment_breakdown} />
@@ -466,20 +466,20 @@ export default function DashboardCabang({ cabangId }) {
             </div>
 
             {/* ========== TABEL TRANSAKSI ========== */}
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                <div className="p-5 border-b border-slate-100">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                <div className="p-5 border-b border-gray-100">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                         <div>
-                            <h2 className="text-base font-bold text-slate-800 tracking-tight">📋 Monitoring Transaksi</h2>
-                            <p className="text-xs text-slate-400 mt-0.5">{filteredTx.length} transaksi • auto-refresh 15 detik • klik untuk detail</p>
+                            <h2 className="text-base font-bold text-gray-800 tracking-tight">Monitoring Transaksi</h2>
+                            <p className="text-xs text-gray-400 mt-0.5">{filteredTx.length} transaksi • auto-refresh 15 detik • klik untuk detail</p>
                         </div>
                     </div>
                     <div className="flex flex-wrap gap-2 mt-4">
                         {statusFilters.map(f => (
                             <button key={f.value} onClick={() => setTxFilter(f.value)}
                                 className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-all ${txFilter === f.value
-                                        ? 'bg-slate-800 text-white shadow-md scale-105'
-                                        : f.color + ' hover:scale-105'
+                                    ? 'bg-gray-800 text-white shadow-md scale-105'
+                                    : f.color + ' hover:scale-105'
                                     }`}>
                                 {f.label}
                             </button>
@@ -489,47 +489,47 @@ export default function DashboardCabang({ cabangId }) {
 
                 {txLoading ? (
                     <div className="flex items-center justify-center py-16">
-                        <div className="w-5 h-5 border-2 border-slate-200 border-t-slate-600 rounded-full animate-spin"></div>
+                        <div className="w-5 h-5 border-2 border-gray-200 border-t-orange-600 rounded-full animate-spin"></div>
                     </div>
                 ) : filteredTx.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center py-16 text-slate-400">
-                        <span className="text-4xl mb-3">🍃</span>
+                    <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+
                         <p className="text-sm font-medium">Belum ada transaksi</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="bg-slate-50/80 border-b border-slate-100">
-                                    <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">No. Order</th>
-                                    <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Waktu</th>
-                                    <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Tipe</th>
-                                    <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Pelanggan</th>
-                                    <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Item</th>
-                                    <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Total</th>
-                                    <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Bayar</th>
-                                    <th className="text-left px-5 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">Status</th>
+                                <tr className="bg-gray-50/80 border-b border-gray-100">
+                                    <th className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">No. Order</th>
+                                    <th className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Waktu</th>
+                                    <th className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tipe</th>
+                                    <th className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Pelanggan</th>
+                                    <th className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Item</th>
+                                    <th className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total</th>
+                                    <th className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Bayar</th>
+                                    <th className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
+                            <tbody className="divide-y divide-gray-50">
                                 {filteredTx.map((order) => (
                                     <tr key={order.id} onClick={() => setSelectedOrder(order)}
                                         className="hover:bg-blue-50/40 cursor-pointer transition-colors group">
                                         <td className="px-5 py-3.5">
-                                            <span className="font-bold text-slate-700 group-hover:text-blue-700 transition-colors">{order.name}</span>
+                                            <span className="font-bold text-gray-700 group-hover:text-blue-700 transition-colors">{order.name}</span>
                                         </td>
-                                        <td className="px-5 py-3.5 text-slate-500 whitespace-nowrap">{formatTime(order.order_date)}</td>
+                                        <td className="px-5 py-3.5 text-gray-500 whitespace-nowrap">{formatTime(order.order_date)}</td>
                                         <td className="px-5 py-3.5">
-                                            <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                                            <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
                                                 {getTypeLabel(order.order_type)}
                                             </span>
                                         </td>
-                                        <td className="px-5 py-3.5 text-slate-600 font-medium">
-                                            {order.customer_name || <span className="text-slate-300">—</span>}
+                                        <td className="px-5 py-3.5 text-gray-600 font-medium">
+                                            {order.customer_name || <span className="text-gray-300">—</span>}
                                         </td>
-                                        <td className="px-5 py-3.5 text-slate-500 font-semibold">{order.total_items}</td>
-                                        <td className="px-5 py-3.5 font-bold text-slate-700 whitespace-nowrap">{formatRupiah(order.total_amount)}</td>
-                                        <td className="px-5 py-3.5 text-slate-500 uppercase text-xs font-semibold">{order.payment_method || '—'}</td>
+                                        <td className="px-5 py-3.5 text-gray-500 font-semibold">{order.total_items}</td>
+                                        <td className="px-5 py-3.5 font-bold text-gray-700 whitespace-nowrap">{formatRupiah(order.total_amount)}</td>
+                                        <td className="px-5 py-3.5 text-gray-500 uppercase text-xs font-semibold">{order.payment_method || '—'}</td>
                                         <td className="px-5 py-3.5">
                                             <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${getStatusColor(order.state)}`}>
                                                 {getStatusLabel(order.state)}
@@ -546,7 +546,7 @@ export default function DashboardCabang({ cabangId }) {
             {/* Peringatan jika tutup */}
             {!myCabang.is_open && (
                 <div className="mt-8 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm font-medium flex items-center gap-3">
-                    <span className="text-xl">⚠️</span>
+
                     Cabang sedang ditutup. Anda tidak dapat menerima pesanan baru.
                 </div>
             )}
@@ -562,14 +562,11 @@ export default function DashboardCabang({ cabangId }) {
 // ============================================
 // Stat Card
 // ============================================
-function StatCard({ icon, title, value, highlight }) {
+function StatCard({ title, value, highlight }) {
     return (
-        <div className={`bg-white p-5 rounded-2xl border shadow-sm transition-all hover:shadow-md ${highlight ? 'border-amber-200 bg-amber-50/30' : 'border-slate-100'}`}>
-            <div className="flex items-center gap-3 mb-3">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center text-lg ${highlight ? 'bg-amber-100' : 'bg-slate-50'}`}>{icon}</div>
-            </div>
-            <h3 className={`text-2xl font-bold tracking-tight ${highlight ? 'text-amber-600' : 'text-slate-900'}`}>{value}</h3>
-            <p className="text-xs font-medium text-slate-400 mt-1 uppercase tracking-wider">{title}</p>
+        <div className={`bg-white p-5 rounded-xl border transition-all ${highlight ? 'border-orange-200 bg-orange-50/30' : 'border-gray-100'}`}>
+            <p className="text-xs font-medium text-gray-400 mb-2 uppercase tracking-wider">{title}</p>
+            <h3 className={`text-2xl font-bold tracking-tight ${highlight ? 'text-orange-600' : 'text-gray-800'}`}>{value}</h3>
         </div>
     );
 }

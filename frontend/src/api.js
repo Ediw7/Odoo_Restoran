@@ -28,13 +28,10 @@ export const api = {
         return apiFetch(url);
     },
     getCabang: () => apiFetch('/api/cabang'),
-
-
     manageCabang: (payload) => apiFetch('/api/cabang_action', {
         method: 'POST',
         body: JSON.stringify(payload)
     }),
-
     getMenu: (kategoriId) => {
         let url = '/api/menu';
         if (kategoriId && kategoriId !== 'all') url += `?kategori_id=${kategoriId}`;
@@ -58,28 +55,30 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(payload)
     }),
-    updateOrderStatus: (orderId, action) => apiFetch(`/api/orders/${orderId}/${action}`, {
-        method: 'POST'
+    updateOrderStatus: (orderId, action, params = {}) => apiFetch(`/api/order_status/${orderId}/${action}`, {
+        method: 'POST',
+        body: JSON.stringify(params)
+    }),
+    updateStock: (menuId, qty) => apiFetch('/api/update_stock', {
+        method: 'POST',
+        body: JSON.stringify({ menu_id: menuId, qty })
     }),
 };
 
 export const formatRupiah = (number) => {
     return new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        minimumFractionDigits: 0
+        style: 'currency', currency: 'IDR', minimumFractionDigits: 0
     }).format(number);
 };
 
 export const formatTime = (dateStr) => {
     if (!dateStr) return '';
-    const date = new Date(dateStr);
-    return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+    return new Date(dateStr).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 };
 
 export const getStatusLabel = (s) => {
     const map = {
-        'draft': 'Draft', 'confirmed': 'Dikonfirmasi', 'preparing': 'Sedang Disiapkan',
+        'draft': 'Draft', 'confirmed': 'Dikonfirmasi', 'preparing': 'Disiapkan',
         'ready': 'Siap Saji', 'done': 'Selesai', 'cancelled': 'Dibatalkan',
     };
     return map[s] || s;
@@ -87,14 +86,14 @@ export const getStatusLabel = (s) => {
 
 export const getStatusColor = (s) => {
     const map = {
-        'draft': 'bg-slate-100 text-slate-500',
-        'confirmed': 'bg-blue-100 text-blue-700',
-        'preparing': 'bg-amber-100 text-amber-700',
-        'ready': 'bg-emerald-100 text-emerald-700',
-        'done': 'bg-green-100 text-green-700',
-        'cancelled': 'bg-red-100 text-red-700'
+        'draft': 'bg-gray-100 text-gray-500',
+        'confirmed': 'bg-blue-50 text-blue-600',
+        'preparing': 'bg-yellow-50 text-yellow-700',
+        'ready': 'bg-green-50 text-green-700',
+        'done': 'bg-gray-100 text-gray-600',
+        'cancelled': 'bg-red-50 text-red-600'
     };
-    return map[s] || 'bg-slate-100 text-slate-700';
+    return map[s] || 'bg-gray-100 text-gray-600';
 };
 
 export const getTypeLabel = (t) => {

@@ -185,12 +185,31 @@ class RestoranAPI(http.Controller):
         except Exception as e:
             return self._json_response({'status': 'error', 'message': str(e)}, 500)
 
+    @http.route('/api/update_stock', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
+    def update_stock(self, **kwargs):
+        if request.httprequest.method == 'OPTIONS':
+            return self._cors_preflight()
+        try:
+            data_str = request.httprequest.data.decode('utf-8')
+            data = json.loads(data_str) if data_str else {}
+            menu_id = data.get('menu_id')
+            qty = data.get('qty', 0)
+            if not menu_id or qty <= 0:
+                return self._json_response({'status': 'error', 'message': 'menu_id dan qty wajib diisi'}, 400)
+            menu = request.env['restoran.menu'].sudo().browse(int(menu_id))
+            if not menu.exists():
+                return self._json_response({'status': 'error', 'message': 'Menu tidak ditemukan'}, 404)
+            menu.sudo().action_add_stock(qty)
+            return self._json_response({'status': 'success', 'data': {'id': menu.id, 'name': menu.name, 'stock_qty': menu.stock_qty}})
+        except Exception as e:
+            return self._json_response({'status': 'error', 'message': str(e)}, 500)
+
     @http.route('/api/menu', type='http', auth='public', methods=['GET', 'OPTIONS'], csrf=False)
     def get_menu_list(self, **kwargs):
         if request.httprequest.method == 'OPTIONS':
             return self._cors_preflight()
         try:
-            domain = [('available', '=', True)]
+            domain = []
             cabang_id = kwargs.get('cabang_id')
             kategori_id = kwargs.get('kategori_id')
 
@@ -202,6 +221,13 @@ class RestoranAPI(http.Controller):
             menus = request.env['restoran.menu'].sudo().search(domain)
             data = []
             for m in menus:
+                bom_lines = []
+                for bl in m.bom_line_ids:
+                    bom_lines.append({
+                        'bahan_name': bl.bahan_id.name,
+                        'qty': bl.qty,
+                        'uom': bl.bahan_id.uom,
+                    })
                 data.append({
                     'id': m.id,
                     'name': m.name,
@@ -214,12 +240,16 @@ class RestoranAPI(http.Controller):
                     },
                     'price': m.price,
                     'available': m.available,
+                    'use_stock': m.use_stock,
+                    'stock_qty': m.stock_qty,
+                    'stock_status': m.stock_status,
                     'is_spicy': m.is_spicy,
                     'is_bestseller': m.is_bestseller,
                     'tag': m.tag or '',
                     'preparation_time': m.preparation_time,
                     'cabang_id': m.cabang_id.id if m.cabang_id else None,
                     'image_url': f'/web/image/restoran.menu/{m.id}/image' if m.image else None,
+                    'bom_line_ids': bom_lines,
                 })
             return self._json_response({'status': 'success', 'data': data})
         except Exception as e:
@@ -296,7 +326,7 @@ class RestoranAPI(http.Controller):
                 'table_number': data.get('table_number', ''),
                 'customer_name': data.get('customer_name', ''),
                 'customer_phone': data.get('customer_phone', ''),
-                'payment_method': data.get('payment_method', 'cash'),
+                'payment_method': data.get('payment_method', False),
                 'note': data.get('note', ''),
                 'line_ids': [(0, 0, {
                     'menu_id': line['menu_id'],
@@ -320,7 +350,7 @@ class RestoranAPI(http.Controller):
         except Exception as e:
             return self._json_response({'status': 'error', 'message': str(e)}, 500)
 
-    @http.route(['/api/orders/<int:order_id>/<string:action_name>'], type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
+    @http.route(['/api/order_status/<int:order_id>/<string:action_name>'], type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
     def update_order_status(self, order_id, action_name, **kwargs):
         if request.httprequest.method == 'OPTIONS':
             return self._cors_preflight()
@@ -328,7 +358,7 @@ class RestoranAPI(http.Controller):
             order = request.env['restoran.order'].sudo().browse(order_id)
             if not order.exists():
                 return self._json_response({'status': 'error', 'message': 'Order tidak ditemukan'}, 404)
-            
+
             if action_name == 'confirm':
                 order.sudo().action_confirm()
             elif action_name == 'prepare':
@@ -336,12 +366,15 @@ class RestoranAPI(http.Controller):
             elif action_name == 'ready':
                 order.sudo().action_ready()
             elif action_name == 'done':
-                order.sudo().action_done()
+                data_str = request.httprequest.data.decode('utf-8')
+                data = json.loads(data_str) if data_str else {}
+                pm = data.get('payment_method')
+                order.sudo().action_done(payment_method=pm)
             elif action_name == 'cancel':
                 order.sudo().action_cancel()
             else:
                 return self._json_response({'status': 'error', 'message': 'Aksi tidak valid'}, 400)
-            
+
             return self._json_response({'status': 'success', 'message': 'Status berhasil diupdate'})
         except Exception as e:
             _logger.error(f"Error updating order status: {e}")
