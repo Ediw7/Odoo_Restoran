@@ -38,11 +38,13 @@ export const api = {
         return apiFetch(url);
     },
     getKategori: () => apiFetch('/api/kategori'),
-    getOrders: (cabangId, state) => {
+    getOrders: (cabangId, state, dateFilter = 'all', limit = 15, offset = 0) => {
         let url = '/api/orders';
         const params = [];
         if (cabangId) params.push(`cabang_id=${cabangId}`);
         if (state && state !== 'all') params.push(`state=${state}`);
+        if (dateFilter && dateFilter !== 'all') params.push(`date_filter=${dateFilter}`);
+        params.push(`limit=${limit}`, `offset=${offset}`);
         if (params.length) url += '?' + params.join('&');
         return apiFetch(url);
     },

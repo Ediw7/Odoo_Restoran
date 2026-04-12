@@ -4,6 +4,7 @@ import os
 from odoo import http
 from odoo.http import request, Response
 from odoo.fields import Date
+from datetime import datetime, timedelta
 from odoo.exceptions import AccessDenied  
 
 _logger = logging.getLogger(__name__)
@@ -348,14 +349,33 @@ class RestoranAPI(http.Controller):
             domain = []
             cabang_id = kwargs.get('cabang_id')
             state = kwargs.get('state')
-            limit = int(kwargs.get('limit', 50))
+            date_filter = kwargs.get('date_filter')
+            limit = int(kwargs.get('limit', 15))
+            offset = int(kwargs.get('offset', 0))
 
             if cabang_id:
                 domain.append(('cabang_id', '=', int(cabang_id)))
             if state:
                 domain.append(('state', '=', state))
 
-            orders = request.env['restoran.order'].sudo().search(domain, limit=limit, order='order_date desc')
+            today = Date.context_today(request.env.user)
+            if date_filter == 'today':
+                domain.append(('order_date', '>=', today))
+                domain.append(('order_date', '<', today + timedelta(days=1)))
+            elif date_filter == 'month':
+                first_day = today.replace(day=1)
+                domain.append(('order_date', '>=', first_day))
+            elif date_filter and date_filter != 'all':
+                # Assume YYYY-MM-DD format from frontend date picker
+                try:
+                    target_date = datetime.strptime(date_filter, '%Y-%m-%d').date()
+                    domain.append(('order_date', '>=', target_date))
+                    domain.append(('order_date', '<', target_date + timedelta(days=1)))
+                except (ValueError, TypeError):
+                    pass # Invalid date format, ignore filter
+
+            total_count = request.env['restoran.order'].sudo().search_count(domain)
+            orders = request.env['restoran.order'].sudo().search(domain, offset=offset, limit=limit, order='order_date desc')
             data = []
             for o in orders:
                 data.append({
@@ -382,7 +402,7 @@ class RestoranAPI(http.Controller):
                         'note': l.note or '',
                     } for l in o.line_ids],
                 })
-            return self._json_response({'status': 'success', 'data': data})
+            return self._json_response({'status': 'success', 'data': data, 'total': total_count})
         except Exception as e:
             return self._json_response({'status': 'error', 'message': str(e)}, 500)
 

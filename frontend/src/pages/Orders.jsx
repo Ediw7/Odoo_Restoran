@@ -5,6 +5,10 @@ export default function Orders({ cabangId }) {
     const [orders, setOrders] = useState([]);
     const [filterState, setFilterState] = useState("");
     const [filterType, setFilterType] = useState("");
+    const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
+    const [page, setPage] = useState(1);
+    const limit = 15;
+    const [totalOrders, setTotalOrders] = useState(0);
     const [loading, setLoading] = useState(true);
     const [selectedOrder, setSelectedOrder] = useState(null);
     const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -12,19 +16,19 @@ export default function Orders({ cabangId }) {
 
     const fetchOrders = async () => {
         setLoading(true);
-        let url = '/api/orders?limit=100';
-        if (cabangId) url += `&cabang_id=${cabangId}`;
-        if (filterState) url += `&state=${filterState}`;
-        const res = await api.apiFetch(url);
+        const offset = (page - 1) * limit;
+        const res = await api.getOrders(cabangId, filterState, filterDate, limit, offset);
         if (res?.status === 'success') {
             let data = res.data;
             if (filterType) data = data.filter(o => o.order_type === filterType);
             setOrders(data);
+            setTotalOrders(res.total || 0);
         }
         setLoading(false);
     };
 
-    useEffect(() => { fetchOrders(); }, [cabangId, filterState, filterType]);
+    useEffect(() => { setPage(1); }, [cabangId, filterState, filterType, filterDate]);
+    useEffect(() => { fetchOrders(); }, [cabangId, filterState, filterType, filterDate, page]);
 
     const changeOrderState = async (id, action, params = {}) => {
         const res = await api.updateOrderStatus(id, action, params);
@@ -38,7 +42,20 @@ export default function Orders({ cabangId }) {
         <div className="animate-fade-in max-w-[1600px] mx-auto pb-10">
             <div className="mb-5 flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <p className="text-sm text-gray-400">Kelola dan pantau status pesanan.</p>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2 items-center">
+                    <div className="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5 h-[38px]">
+                        <label className="text-[10px] font-bold text-gray-400 uppercase">Tanggal</label>
+                        <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)}
+                            className="bg-transparent text-sm outline-none cursor-pointer text-gray-700" />
+                        {filterDate && (
+                            <button onClick={() => setFilterDate("")} className="text-gray-300 hover:text-gray-500 text-xs ml-1">×</button>
+                        )}
+                    </div>
+                    {/* Presets can be buttons instead of dropdown if needed, but for now just date picker & all */}
+                    <button onClick={() => setFilterDate("")}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${!filterDate ? 'bg-orange-500 text-white' : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-50'}`}>
+                        Semua Waktu
+                    </button>
                     <select value={filterState} onChange={e => setFilterState(e.target.value)}
                         className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-orange-400 cursor-pointer">
                         <option value="">Semua Status</option>
@@ -94,6 +111,23 @@ export default function Orders({ cabangId }) {
                             </div>
                         );
                     })}
+                </div>
+            )}
+
+            {/* Pagination Controls */}
+            {totalOrders > limit && (
+                <div className="mt-6 flex items-center justify-between mx-auto max-w-md bg-white border border-gray-100 p-2 rounded-xl">
+                    <button disabled={page === 1} onClick={() => setPage(page - 1)}
+                        className="px-4 py-2 text-sm font-medium text-gray-600 disabled:text-gray-300 disabled:bg-transparent hover:bg-gray-50 rounded-lg transition-colors">
+                        Sebelumnya
+                    </button>
+                    <span className="text-sm font-semibold text-gray-500">
+                        {page} / {Math.ceil(totalOrders / limit)}
+                    </span>
+                    <button disabled={page * limit >= totalOrders} onClick={() => setPage(page + 1)}
+                        className="px-4 py-2 text-sm font-medium text-gray-600 disabled:text-gray-300 disabled:bg-transparent hover:bg-gray-50 rounded-lg transition-colors">
+                        Selanjutnya
+                    </button>
                 </div>
             )}
 
