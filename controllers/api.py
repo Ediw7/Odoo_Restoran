@@ -204,6 +204,46 @@ class RestoranAPI(http.Controller):
         except Exception as e:
             return self._json_response({'status': 'error', 'message': str(e)}, 500)
 
+    @http.route('/api/bahan_baku', type='http', auth='public', methods=['GET', 'OPTIONS'], csrf=False)
+    def get_bahan_baku(self, **kwargs):
+        if request.httprequest.method == 'OPTIONS':
+            return self._cors_preflight()
+        try:
+            bahan_list = request.env['restoran.bahan'].sudo().search([])
+            data = [{
+                'id': b.id,
+                'name': b.name,
+                'code': b.code or '',
+                'uom': b.uom or '',
+                'stock_qty': b.stock_qty,
+                'min_stock': b.min_stock,
+                'stock_status': b.stock_status,
+                'price_per_unit': b.price_per_unit,
+            } for b in bahan_list]
+            return self._json_response({'status': 'success', 'data': data})
+        except Exception as e:
+            return self._json_response({'status': 'error', 'message': str(e)}, 500)
+
+    @http.route('/api/update_bahan_baku', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
+    def update_bahan_baku(self, **kwargs):
+        if request.httprequest.method == 'OPTIONS':
+            return self._cors_preflight()
+        try:
+            data_str = request.httprequest.data.decode('utf-8')
+            data = json.loads(data_str) if data_str else {}
+            bahan_id = data.get('bahan_id')
+            qty = data.get('qty', 0)
+            if not bahan_id or qty <= 0:
+                return self._json_response({'status': 'error', 'message': 'bahan_id dan qty wajib diisi'}, 400)
+            bahan = request.env['restoran.bahan'].sudo().browse(int(bahan_id))
+            if not bahan.exists():
+                return self._json_response({'status': 'error', 'message': 'Bahan Baku tidak ditemukan'}, 404)
+            # update stock
+            bahan.sudo().write({'stock_qty': bahan.stock_qty + float(qty)})
+            return self._json_response({'status': 'success', 'data': {'id': bahan.id, 'name': bahan.name, 'stock_qty': bahan.stock_qty}})
+        except Exception as e:
+            return self._json_response({'status': 'error', 'message': str(e)}, 500)
+
     @http.route('/api/menu', type='http', auth='public', methods=['GET', 'OPTIONS'], csrf=False)
     def get_menu_list(self, **kwargs):
         if request.httprequest.method == 'OPTIONS':

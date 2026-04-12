@@ -6,9 +6,9 @@ import DashboardCabang from "./pages/DashboardCabang";
 import DashboardAdmin from "./pages/Dashboard";
 import POS from "./pages/POS";
 import Orders from "./pages/Orders";
-import Kitchen from "./pages/Kitchen";
 import Menu from "./pages/Menu";
 import Inventory from "./pages/Inventory";
+import BahanBaku from "./pages/BahanBaku";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -79,13 +79,13 @@ export default function App() {
       { id: "dashboard", label: "Dashboard" },
       { id: "pos", label: "Kasir" },
       { id: "orders", label: "Pesanan", badge: activeOrdersCount },
-      { id: "inventory", label: "Stok" },
-      { id: "kitchen", label: "Dapur" },
+      { id: "inventory", label: "Stok Etalase" },
+      { id: "bahan_baku", label: "Gudang Bahan" },
     ];
 
   const pageTitles = {
     dashboard: 'Dashboard', pos: 'Kasir', orders: 'Daftar Pesanan',
-    inventory: 'Manajemen Stok', kitchen: 'Dapur', menu: 'Kelola Menu',
+    inventory: 'Stok Etalase', bahan_baku: 'Bahan Baku Mentah', menu: 'Kelola Menu',
   };
 
   if (!isLoggedIn) {
@@ -159,8 +159,8 @@ export default function App() {
           {activePage === "dashboard" && userData?.role === 'cashier' && <DashboardCabang cabangId={activeCabangId} />}
           {activePage === "pos" && <POS cabangList={cabangList} activeCabangId={activeCabangId} />}
           {activePage === "orders" && <Orders cabangId={activeCabangId} />}
-          {activePage === "kitchen" && <Kitchen cabangId={activeCabangId} />}
           {activePage === "inventory" && <Inventory activeCabangId={activeCabangId} />}
+          {activePage === "bahan_baku" && <BahanBaku />}
           {activePage === "menu" && <Menu cabangId={activeCabangId} />}
         </div>
       </main>

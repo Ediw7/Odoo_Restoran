@@ -112,8 +112,10 @@ class RestoranMenu(models.Model):
                 rec.stock_status = 'in_stock'
 
     def action_add_stock(self, qty):
-        """Tambah stok menu"""
+        """Tambah stok menu sekaligus mengurangi stok bahan baku sesuai BOM"""
         for rec in self:
+            if rec.bom_line_ids:
+                rec._deduct_bom_stock(portions=qty)
             rec.stock_qty += qty
             if rec.stock_qty > 0 and not rec.available:
                 rec.available = True

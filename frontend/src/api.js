@@ -67,6 +67,11 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(payload)
     }),
+    getBahanBaku: () => apiFetch('/api/bahan_baku'),
+    updateStockBahan: (bahanId, qty) => apiFetch('/api/update_bahan_baku', {
+        method: 'POST',
+        body: JSON.stringify({ bahan_id: bahanId, qty })
+    }),
 };
 
 export const formatRupiah = (number) => {

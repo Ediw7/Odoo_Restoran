@@ -83,16 +83,13 @@ class RestoranOrder(models.Model):
             order.total_items = sum(order.line_ids.mapped('qty'))
 
     def action_confirm(self):
-        """Konfirmasi order + kurangi stok menu dan bahan baku"""
+        """Konfirmasi order + kurangi stok menu"""
         for order in self:
             for line in order.line_ids:
                 menu = line.menu_id
                 # Kurangi stok menu
                 if menu.use_stock:
                     menu._deduct_stock(line.qty)
-                # Kurangi stok bahan baku (BOM)
-                if menu.bom_line_ids:
-                    menu._deduct_bom_stock(portions=line.qty)
         self.write({'state': 'confirmed'})
 
     def action_prepare(self):
@@ -118,7 +115,7 @@ class RestoranOrder(models.Model):
         for order in self:
             if order.state == 'done':
                 raise ValidationError('Order yang sudah selesai tidak bisa dibatalkan!')
-            # Kembalikan stok jika order sudah dikonfirmasi
+            # Kembalikan stok menu jika order sudah dikonfirmasi
             if order.state in ('confirmed', 'preparing', 'ready'):
                 for line in order.line_ids:
                     menu = line.menu_id
@@ -126,10 +123,6 @@ class RestoranOrder(models.Model):
                         menu.stock_qty += line.qty
                         if menu.stock_qty > 0:
                             menu.available = True
-                    # Kembalikan stok bahan baku
-                    if menu.bom_line_ids:
-                        for bom_line in menu.bom_line_ids:
-                            bom_line.bahan_id.stock_qty += bom_line.qty * line.qty
         self.write({'state': 'cancelled'})
 
     def action_reset_draft(self):
