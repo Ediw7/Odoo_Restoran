@@ -92,7 +92,7 @@ export default function POS({ cabangList, activeCabangId }) {
     const isTableOccupied = orderType === 'dine_in' && tableNumber && occupiedTables.includes(tableNumber.trim().toLowerCase());
 
     const handleCheckout = async () => {
-        if (cart.length === 0 || isTableOccupied) return;
+        if (cart.length === 0) return;
         let targetCabangId = activeCabangId;
         if (!targetCabangId && cabangList.length > 0) targetCabangId = cabangList[0].id;
         if (!targetCabangId) return alert("Pilih cabang terlebih dahulu.");
@@ -190,8 +190,8 @@ export default function POS({ cabangList, activeCabangId }) {
                         <div>
                             <label className="block text-xs text-gray-400 mb-1">No. Meja</label>
                             <input type="text" value={tableNumber} onChange={e => setTableNumber(e.target.value)} placeholder="-"
-                                className={`w-full px-3 py-1.5 bg-gray-50 border rounded-lg text-sm outline-none transition-all ${isTableOccupied ? 'border-red-400 focus:border-red-500' : 'border-gray-200 focus:border-orange-400'}`} />
-                            {isTableOccupied && <div className="text-[10px] text-red-500 mt-1 font-medium">Nomor Meja sedang digunakan</div>}
+                                className={`w-full px-3 py-1.5 bg-gray-50 border rounded-lg text-sm outline-none transition-all ${isTableOccupied ? 'border-orange-400 focus:border-orange-500 bg-orange-50/50' : 'border-gray-200 focus:border-orange-400'}`} />
+                            {isTableOccupied && <div className="text-[10px] text-orange-600 mt-1 font-medium">Meja aktif: Pesanan akan digabung</div>}
                         </div>
                         <div>
                             <label className="block text-xs text-gray-400 mb-1">Pelanggan</label>
@@ -199,6 +199,19 @@ export default function POS({ cabangList, activeCabangId }) {
                                 className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-orange-400" />
                         </div>
                     </div>
+                    {orderType === 'dine_in' && occupiedTables.length > 0 && (
+                        <div className="pt-2 border-t border-gray-50">
+                            <label className="block text-[10px] text-gray-400 mb-1.5">Meja Aktif Saat Ini:</label>
+                            <div className="flex flex-wrap gap-1.5">
+                                {occupiedTables.map(t => (
+                                    <button key={t} onClick={() => setTableNumber(t)}
+                                        className={`px-3 py-1 bg-orange-50 text-orange-600 border border-orange-200 rounded-md text-xs font-bold hover:bg-orange-100 transition-colors ${tableNumber.trim().toLowerCase() === t ? 'ring-2 ring-orange-400' : ''}`}>
+                                        {t.toUpperCase()}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-3">
@@ -236,9 +249,9 @@ export default function POS({ cabangList, activeCabangId }) {
                             <span className="text-lg font-bold text-orange-600">{formatRupiah(total)}</span>
                         </div>
                     </div>
-                    <button disabled={cart.length === 0 || isTableOccupied} onClick={handleCheckout}
+                    <button disabled={cart.length === 0} onClick={handleCheckout}
                         className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-                        Proses Pesanan
+                        {isTableOccupied ? `Tambah ke Meja ${tableNumber.trim()}` : 'Proses Pesanan'}
                     </button>
                 </div>
             </div>

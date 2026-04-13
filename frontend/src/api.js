@@ -70,14 +70,13 @@ export const api = {
         body: JSON.stringify(payload)
     }),
     getBahanBaku: () => apiFetch('/api/bahan_baku'),
-    updateStockBahan: (bahanId, qty) => apiFetch('/api/update_bahan_baku', {
-        method: 'POST',
-        body: JSON.stringify({ bahan_id: bahanId, qty })
-    }),
-    createBahanBaku: (payload) => apiFetch('/api/bahan_baku_create', {
-        method: 'POST',
-        body: JSON.stringify(payload)
-    }),
+    createBahanBaku: (data) => apiFetch('/api/bahan_baku_create', { method: 'POST', body: JSON.stringify(data) }),
+    updateBahanStock: (data) => apiFetch('/api/update_bahan_baku', { method: 'POST', body: JSON.stringify(data) }),
+    getFinanceReport: (cabangId, filterMode, filterValue) => {
+        let url = `/api/report_finance?filter_mode=${filterMode}&filter_value=${filterValue}`;
+        if (cabangId) url += `&cabang_id=${cabangId}`;
+        return apiFetch(url);
+    }
 };
 
 export const formatRupiah = (number) => {

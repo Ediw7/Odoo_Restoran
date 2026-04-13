@@ -260,6 +260,7 @@ class RestoranAPI(http.Controller):
                 'uom': data.get('uom'),
                 'stock_qty': float(data.get('stock_qty', 0)),
                 'min_stock': float(data.get('min_stock', 5)),
+                'price_per_unit': float(data.get('price_per_unit', 0)),
             })
             return self._json_response({'status': 'success', 'message': 'Bahan Baku berhasil ditambahkan', 'data': {'id': bahan.id}})
         except Exception as e:
@@ -422,33 +423,48 @@ class RestoranAPI(http.Controller):
             if not data.get('lines') or len(data['lines']) == 0:
                 return self._json_response({'status': 'error', 'message': 'Minimal 1 item order'}, 400)
 
-            order_vals = {
-                'cabang_id': data['cabang_id'],
-                'order_type': data.get('order_type', 'dine_in'),
-                'table_number': data.get('table_number', ''),
-                'customer_name': data.get('customer_name', ''),
-                'customer_phone': data.get('customer_phone', ''),
-                'payment_method': data.get('payment_method', False),
-                'note': data.get('note', ''),
-                'line_ids': [(0, 0, {
+            cabang_id = data['cabang_id']
+            table_number = data.get('table_number', '')
+            order_type = data.get('order_type', 'dine_in')
+            lines_data = data['lines']
+
+            # Check if there's an active order for this table
+            active_order = False
+            if order_type == 'dine_in' and table_number:
+                active_order = request.env['restoran.order'].sudo().search([
+                    ('cabang_id', '=', cabang_id),
+                    ('table_number', '=', table_number),
+                    ('state', 'in', ['draft', 'confirmed', 'preparing', 'ready'])
+                ], limit=1)
+
+            if active_order:
+                # Append to existing order
+                new_lines = [(0, 0, {
                     'menu_id': line['menu_id'],
                     'qty': line.get('qty', 1),
                     'note': line.get('note', ''),
-                }) for line in data['lines']],
-            }
-
-            order = request.env['restoran.order'].sudo().create(order_vals)
-
-            return self._json_response({
-                'status': 'success',
-                'message': 'Order berhasil dibuat',
-                'data': {
-                    'id': order.id,
-                    'name': order.name,
-                    'total_amount': order.total_amount,
-                    'state': order.state,
+                }) for line in lines_data]
+                active_order.write({'line_ids': new_lines})
+                order = active_order
+            else:
+                # Create brand new order
+                order_vals = {
+                    'cabang_id': cabang_id,
+                    'order_type': order_type,
+                    'table_number': table_number,
+                    'customer_name': data.get('customer_name', ''),
+                    'customer_phone': data.get('customer_phone', ''),
+                    'payment_method': data.get('payment_method', False),
+                    'note': data.get('note', ''),
+                    'line_ids': [(0, 0, {
+                        'menu_id': line['menu_id'],
+                        'qty': line.get('qty', 1),
+                        'note': line.get('note', ''),
+                    }) for line in lines_data],
                 }
-            })
+                order = request.env['restoran.order'].sudo().create(order_vals)
+
+            return self._json_response({'status': 'success', 'data': {'id': order.id, 'name': order.name, 'table': table_number or '-'}})
         except Exception as e:
             return self._json_response({'status': 'error', 'message': str(e)}, 500)
 
@@ -647,4 +663,108 @@ class RestoranAPI(http.Controller):
             }})
         except Exception as e:
             _logger.error(f"Error getting chart data: {e}")
+            return self._json_response({'status': 'error', 'message': str(e)}, 500)
+
+    # ==========================================
+    # API REPORT FINANCE & COGS
+    # ==========================================
+    @http.route('/api/report_finance', type='http', auth='public', methods=['GET', 'OPTIONS'], csrf=False)
+    def get_report_finance(self, **kwargs):
+        if request.httprequest.method == 'OPTIONS':
+            return self._cors_preflight()
+        try:
+            cabang_id = kwargs.get('cabang_id')
+            filter_mode = kwargs.get('filter_mode', 'day') # day, month, year
+            filter_value = kwargs.get('filter_value') # YYYY-MM-DD, YYYY-MM, or YYYY
+
+            from datetime import timedelta, datetime
+            import calendar
+            today = Date.today()
+            
+            start_date = today
+            end_date = today
+
+            if filter_value:
+                try:
+                    if filter_mode == 'day':
+                        dt = datetime.strptime(filter_value, '%Y-%m-%d').date()
+                        start_date = end_date = dt
+                    elif filter_mode == 'month':
+                        dt = datetime.strptime(filter_value, '%Y-%m').date()
+                        start_date = dt.replace(day=1)
+                        last_day = calendar.monthrange(dt.year, dt.month)[1]
+                        end_date = dt.replace(day=last_day)
+                    elif filter_mode == 'year':
+                        year = int(filter_value)
+                        start_date = Date.to_date(f'{year}-01-01')
+                        end_date = Date.to_date(f'{year}-12-31')
+                except:
+                    pass
+
+            order_domain = [
+                ('state', '=', 'done'),
+                ('order_date', '>=', start_date.strftime('%Y-%m-%d 00:00:00')),
+                ('order_date', '<=', end_date.strftime('%Y-%m-%d 23:59:59')),
+            ]
+            if cabang_id:
+                order_domain.append(('cabang_id', '=', int(cabang_id)))
+
+            orders = request.env['restoran.order'].sudo().search(order_domain)
+
+            # Compute Revenue and Dynamic COGS (HPP)
+            total_revenue = 0.0
+            total_cogs = 0.0
+            top_profit_menus = {}
+
+            # Cache the BOM cost to speed up
+            menu_cost_cache = {}
+
+            for order in orders:
+                total_revenue += order.total_amount
+                for line in order.line_ids:
+                    menu = line.menu_id
+                    qty_sold = line.qty
+
+                    # Calculate HPP for this menu
+                    if menu.id not in menu_cost_cache:
+                        hpp = 0.0
+                        for bom in menu.bom_line_ids:
+                            # Cost = Standard Price of Raw Material * Qty Needed
+                            hpp += bom.qty * bom.bahan_id.price_per_unit
+                        menu_cost_cache[menu.id] = hpp
+                    
+                    line_cogs = menu_cost_cache[menu.id] * qty_sold
+                    total_cogs += line_cogs
+                    line_profit = line.subtotal - line_cogs
+
+                    if menu.id not in top_profit_menus:
+                        top_profit_menus[menu.id] = {
+                            'id': menu.id,
+                            'name': menu.name,
+                            'kategori': menu.kategori_id.name if menu.kategori_id else '-',
+                            'qty_sold': 0,
+                            'revenue': 0.0,
+                            'cogs': 0.0,
+                            'profit': 0.0,
+                        }
+                    
+                    top_profit_menus[menu.id]['qty_sold'] += qty_sold
+                    top_profit_menus[menu.id]['revenue'] += line.subtotal
+                    top_profit_menus[menu.id]['cogs'] += line_cogs
+                    top_profit_menus[menu.id]['profit'] += line_profit
+
+            # Sort top menus by profit
+            sorted_menus = sorted(top_profit_menus.values(), key=lambda x: x['profit'], reverse=True)
+
+            return self._json_response({'status': 'success', 'data': {
+                'filter_label': f"Periode: {start_date.strftime('%d %b %Y')} s/d {end_date.strftime('%d %b %Y')}",
+                'total_revenue': total_revenue,
+                'total_cogs': total_cogs,
+                'gross_profit': total_revenue - total_cogs,
+                'gross_margin_pct': round(((total_revenue - total_cogs) / total_revenue) * 100, 1) if total_revenue > 0 else 0,
+                'total_orders': len(orders),
+                'top_profit_menus': sorted_menus[:10]
+            }})
+        except Exception as e:
+            _logger.error(f"Error finance report: {e}")
             return self._json_response({'status': 'error', 'message': str(e)}, 500)

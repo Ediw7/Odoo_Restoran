@@ -11,7 +11,7 @@ export default function BahanBaku() {
 
     // Modal Add Master Bahan state
     const [showAddModal, setShowAddModal] = useState(false);
-    const [newBahan, setNewBahan] = useState({ name: '', uom: 'pcs' });
+    const [newBahan, setNewBahan] = useState({ name: '', uom: 'pcs', price_per_unit: '' });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => { fetchBahan(); }, []);
@@ -48,11 +48,11 @@ export default function BahanBaku() {
             return setNotification({ type: 'error', message: "Nama & Satuan wajib diisi" });
         }
         setIsSubmitting(true);
-        const res = await api.createBahanBaku(newBahan);
+        const res = await api.createBahanBaku({ ...newBahan, price_per_unit: parseFloat(newBahan.price_per_unit || 0) });
         if (res?.status === 'success') {
             setNotification({ type: 'success', message: "Master Bahan Baku berhasil dibuat" });
             setShowAddModal(false);
-            setNewBahan({ name: '', uom: 'pcs' });
+            setNewBahan({ name: '', uom: 'pcs', price_per_unit: '' });
             fetchBahan();
         } else {
             setNotification({ type: 'error', message: res?.message || "Gagal membuat master bahan" });
@@ -114,6 +114,11 @@ export default function BahanBaku() {
                                     </div>
                                 </div>
 
+                                <div className="mb-3">
+                                    <div className="text-xs text-gray-500 font-medium">Harga Modal (Dasar HPP):</div>
+                                    <div className="text-sm font-semibold text-gray-700">{formatRupiah(b.price_per_unit || 0)} <span className="text-xs text-gray-400 font-normal">/ {b.uom}</span></div>
+                                </div>
+
                                 <div className="flex items-baseline gap-1.5 mb-4 border-b border-gray-50 pb-4">
                                     <span className={`text-3xl font-bold ${isOutOfStock ? 'text-red-500' : 'text-gray-800'}`}>
                                         {b.stock_qty % 1 === 0 ? b.stock_qty : parseFloat(b.stock_qty).toFixed(2)}
@@ -164,6 +169,12 @@ export default function BahanBaku() {
                                     <option value="btl">Botol</option>
                                     <option value="pack">Pack</option>
                                 </select>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-500 mb-1.5">Harga Modal Per Satuan (Rp)</label>
+                                <input required type="number" min="0" placeholder="0" value={newBahan.price_per_unit} onChange={e => setNewBahan({ ...newBahan, price_per_unit: e.target.value })}
+                                    className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-orange-400" />
+                                <p className="text-[10px] text-gray-400 mt-1">Harga ini akan digunakan sebagai dasar otomatis penentuan HPP (Cost) sebuah menu resep.</p>
                             </div>
                         </div>
                         <div className="px-5 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-2">
