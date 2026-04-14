@@ -93,6 +93,7 @@ export default function POS({ cabangList, activeCabangId }) {
 
     const handleCheckout = async () => {
         if (cart.length === 0) return;
+        if (!tableNumber.trim() || !customerName.trim()) return alert("Nomor Meja dan Nama Pelanggan wajib diisi sebelum proses!");
         let targetCabangId = activeCabangId;
         if (!targetCabangId && cabangList.length > 0) targetCabangId = cabangList[0].id;
         if (!targetCabangId) return alert("Pilih cabang terlebih dahulu.");
@@ -249,7 +250,7 @@ export default function POS({ cabangList, activeCabangId }) {
                             <span className="text-lg font-bold text-orange-600">{formatRupiah(total)}</span>
                         </div>
                     </div>
-                    <button disabled={cart.length === 0} onClick={handleCheckout}
+                    <button disabled={cart.length === 0 || !tableNumber.trim() || !customerName.trim()} onClick={handleCheckout}
                         className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed">
                         {isTableOccupied ? `Tambah ke Meja ${tableNumber.trim()}` : 'Proses Pesanan'}
                     </button>
