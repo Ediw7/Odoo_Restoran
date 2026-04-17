@@ -11,22 +11,11 @@ export default function POS({ cabangList, activeCabangId }) {
     const [orderType, setOrderType] = useState("dine_in");
     const [tableNumber, setTableNumber] = useState("");
     const [customerName, setCustomerName] = useState("");
+    const [paymentMethod, setPaymentMethod] = useState("cash"); // cash, card, qris, transfer
     const [successOrder, setSuccessOrder] = useState(null);
-    const [occupiedTables, setOccupiedTables] = useState([]);
 
-    useEffect(() => { fetchKategoris(); fetchOccupiedTables(); }, []);
-    useEffect(() => { fetchMenus(); fetchOccupiedTables(); }, [activeKategori, activeCabangId]);
-
-    const fetchOccupiedTables = async () => {
-        let url = '/api/orders?limit=100';
-        if (activeCabangId) url += `&cabang_id=${activeCabangId}`;
-        const res = await api.apiFetch(url);
-        if (res?.status === 'success') {
-            const active = res.data.filter(o => ['draft', 'confirmed', 'preparing', 'ready'].includes(o.state));
-            const tables = active.map(o => o.table_number.trim().toLowerCase()).filter(t => t);
-            setOccupiedTables([...new Set(tables)]);
-        }
-    };
+    useEffect(() => { fetchKategoris(); }, []);
+    useEffect(() => { fetchMenus(); }, [activeKategori, activeCabangId]);
 
     const fetchKategoris = async () => {
         const res = await api.getKategori();
@@ -58,11 +47,10 @@ export default function POS({ cabangList, activeCabangId }) {
     const isOutOfStock = (m) => m.use_stock && m.stock_qty <= 0;
 
     const addToCart = (menu) => {
-        if (isOutOfStock(menu)) return; // block out of stock
+        if (isOutOfStock(menu)) return;
         setCart(prev => {
             const existing = prev.find(item => item.menu.id === menu.id);
             if (existing) {
-                // block if exceeds stock
                 if (menu.use_stock && existing.qty + 1 > menu.stock_qty) return prev;
                 return prev.map(item => item.menu.id === menu.id ? { ...item, qty: item.qty + 1 } : item);
             }
@@ -75,7 +63,6 @@ export default function POS({ cabangList, activeCabangId }) {
             if (item.menu.id === id) {
                 const newQty = item.qty + delta;
                 if (newQty <= 0) return item;
-                // block if exceeds stock
                 if (item.menu.use_stock && newQty > item.menu.stock_qty) return item;
                 return { ...item, qty: newQty };
             }
@@ -89,25 +76,42 @@ export default function POS({ cabangList, activeCabangId }) {
     const tax = subtotal * 0.1;
     const total = subtotal + tax;
 
-    const isTableOccupied = orderType === 'dine_in' && tableNumber && occupiedTables.includes(tableNumber.trim().toLowerCase());
-
     const handleCheckout = async () => {
         if (cart.length === 0) return;
-        if (!tableNumber.trim() || !customerName.trim()) return alert("Nomor Meja dan Nama Pelanggan wajib diisi sebelum proses!");
+        if (!tableNumber.trim() || !customerName.trim()) return alert("Nomor Meja dan Nama Pelanggan wajib diisi sebelum bayar!");
+        if (!paymentMethod) return alert("Pilih metode pembayaran!");
+
         let targetCabangId = activeCabangId;
         if (!targetCabangId && cabangList.length > 0) targetCabangId = cabangList[0].id;
         if (!targetCabangId) return alert("Pilih cabang terlebih dahulu.");
 
         const payload = {
-            cabang_id: parseInt(targetCabangId), order_type: orderType,
-            table_number: tableNumber, customer_name: customerName,
+            cabang_id: parseInt(targetCabangId),
+            order_type: orderType,
+            table_number: tableNumber,
+            customer_name: customerName,
+            payment_method: paymentMethod,
             lines: cart.map(c => ({ menu_id: c.menu.id, qty: c.qty }))
         };
 
         const res = await api.createOrder(payload);
-        if (res?.status === 'success') { setSuccessOrder(res.data); setCart([]); setTableNumber(""); setCustomerName(""); fetchMenus(); }
-        else alert("Gagal: " + (res?.message || 'Error'));
+        if (res?.status === 'success') {
+            setSuccessOrder(res.data);
+            setCart([]);
+            setTableNumber("");
+            setCustomerName("");
+            fetchMenus();
+        }
+        else alert("Gagal Transaksi: " + (res?.message || 'Error'));
     };
+
+    const PaymentOption = ({ id, label, icon }) => (
+        <button onClick={() => setPaymentMethod(id)}
+            className={`flex-1 flex flex-col items-center justify-center p-2 rounded-xl border transition-all ${paymentMethod === id ? 'bg-orange-50 border-orange-500 text-orange-600' : 'bg-white border-gray-100 text-gray-400 hover:border-gray-200'}`}>
+            <span className="text-lg mb-1">{icon}</span>
+            <span className="text-[10px] font-bold uppercase tracking-tighter">{label}</span>
+        </button>
+    );
 
     return (
         <div className="flex flex-col lg:flex-row gap-5 h-[calc(100vh-6.5rem)] animate-fade-in w-full">
@@ -172,9 +176,9 @@ export default function POS({ cabangList, activeCabangId }) {
             {/* Cart / Invoice */}
             <div className="w-full lg:w-[320px] xl:w-[350px] bg-white border border-gray-100 rounded-xl flex flex-col shrink-0 h-full overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-800">Pesanan</h3>
+                    <h3 className="font-bold text-gray-800">Kasir Pembayaran</h3>
                     {cart.length > 0 && (
-                        <button onClick={() => setCart([])} className="text-xs text-gray-400 hover:text-red-500 transition-colors">Hapus</button>
+                        <button onClick={() => setCart([])} className="text-xs text-red-400 hover:text-red-500 font-medium">Reset</button>
                     )}
                 </div>
 
@@ -182,56 +186,44 @@ export default function POS({ cabangList, activeCabangId }) {
                     <div className="flex bg-gray-50 p-0.5 rounded-lg">
                         {['dine_in', 'take_away', 'delivery'].map(type => (
                             <button key={type} onClick={() => setOrderType(type)}
-                                className={`flex-1 py-1.5 rounded-md text-xs font-medium transition-all capitalize ${orderType === type ? 'bg-white shadow-sm text-gray-800' : 'text-gray-400'}`}>
+                                className={`flex-1 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${orderType === type ? 'bg-white shadow-sm text-gray-800' : 'text-gray-400'}`}>
                                 {type.replace('_', ' ')}
                             </button>
                         ))}
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                         <div>
-                            <label className="block text-xs text-gray-400 mb-1">No. Meja</label>
-                            <input type="text" value={tableNumber} onChange={e => setTableNumber(e.target.value)} placeholder="-"
-                                className={`w-full px-3 py-1.5 bg-gray-50 border rounded-lg text-sm outline-none transition-all ${isTableOccupied ? 'border-orange-400 focus:border-orange-500 bg-orange-50/50' : 'border-gray-200 focus:border-orange-400'}`} />
-                            {isTableOccupied && <div className="text-[10px] text-orange-600 mt-1 font-medium">Meja aktif: Pesanan akan digabung</div>}
+                            <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">No. Meja</label>
+                            <input type="text" value={tableNumber} onChange={e => setTableNumber(e.target.value)} placeholder="00"
+                                className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-center font-bold outline-none focus:border-orange-400" />
                         </div>
                         <div>
-                            <label className="block text-xs text-gray-400 mb-1">Pelanggan</label>
+                            <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Nama Pelanggan</label>
                             <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Walk-in"
                                 className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-orange-400" />
                         </div>
                     </div>
-                    {orderType === 'dine_in' && occupiedTables.length > 0 && (
-                        <div className="pt-2 border-t border-gray-50">
-                            <label className="block text-[10px] text-gray-400 mb-1.5">Meja Aktif Saat Ini:</label>
-                            <div className="flex flex-wrap gap-1.5">
-                                {occupiedTables.map(t => (
-                                    <button key={t} onClick={() => setTableNumber(t)}
-                                        className={`px-3 py-1 bg-orange-50 text-orange-600 border border-orange-200 rounded-md text-xs font-bold hover:bg-orange-100 transition-colors ${tableNumber.trim().toLowerCase() === t ? 'ring-2 ring-orange-400' : ''}`}>
-                                        {t.toUpperCase()}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                    )}
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-3">
                     {cart.length === 0 ? (
-                        <div className="h-full flex items-center justify-center text-gray-300 text-sm">Belum ada item</div>
+                        <div className="h-full flex flex-col items-center justify-center text-gray-300">
+                            <span className="text-3xl mb-2">🛒</span>
+                            <span className="text-xs">Pilih menu untuk mulai</span>
+                        </div>
                     ) : (
                         <div className="space-y-3">
                             {cart.map(c => (
-                                <div key={c.menu.id} className="flex items-start justify-between">
-                                    <div className="flex-1 pr-3">
-                                        <div className="font-medium text-gray-800 text-sm">{c.menu.name}</div>
-                                        <div className="text-xs text-gray-400">{formatRupiah(c.menu.price)}</div>
+                                <div key={c.menu.id} className="flex items-start justify-between bg-gray-50/50 p-2 rounded-lg border border-gray-50">
+                                    <div className="flex-1 pr-2">
+                                        <div className="font-semibold text-gray-800 text-xs">{c.menu.name}</div>
+                                        <div className="text-[10px] text-gray-400">{formatRupiah(c.menu.price)} x {c.qty}</div>
                                     </div>
                                     <div className="flex flex-col items-end gap-1.5">
-                                        <span className="text-sm font-semibold text-gray-800">{formatRupiah(c.menu.price * c.qty)}</span>
+                                        <span className="text-xs font-bold text-gray-800">{formatRupiah(c.menu.price * c.qty)}</span>
                                         <div className="flex items-center gap-1">
-                                            <button onClick={() => c.qty === 1 ? removeFromCart(c.menu.id) : updateQty(c.menu.id, -1)} className="w-6 h-6 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded text-xs text-gray-600">-</button>
-                                            <span className="w-5 text-center text-xs font-semibold text-gray-700">{c.qty}</span>
-                                            <button onClick={() => updateQty(c.menu.id, 1)} className="w-6 h-6 flex items-center justify-center bg-gray-100 hover:bg-gray-200 rounded text-xs text-gray-600">+</button>
+                                            <button onClick={() => c.qty === 1 ? removeFromCart(c.menu.id) : updateQty(c.menu.id, -1)} className="w-5 h-5 flex items-center justify-center bg-white border border-gray-100 rounded text-[10px]">-</button>
+                                            <button onClick={() => updateQty(c.menu.id, 1)} className="w-5 h-5 flex items-center justify-center bg-white border border-gray-100 rounded text-[10px]">+</button>
                                         </div>
                                     </div>
                                 </div>
@@ -240,35 +232,49 @@ export default function POS({ cabangList, activeCabangId }) {
                     )}
                 </div>
 
-                <div className="border-t border-gray-100 p-4 space-y-3 shrink-0">
-
-                    <div className="space-y-1 text-sm">
-                        <div className="flex justify-between text-gray-400"><span>Subtotal</span><span className="text-gray-600">{formatRupiah(subtotal)}</span></div>
-                        <div className="flex justify-between text-gray-400"><span>Pajak (10%)</span><span className="text-gray-600">{formatRupiah(tax)}</span></div>
-                        <div className="flex justify-between pt-2 border-t border-gray-100 mt-1">
-                            <span className="font-semibold text-gray-800">Total</span>
-                            <span className="text-lg font-bold text-orange-600">{formatRupiah(total)}</span>
+                <div className="border-t border-gray-100 p-4 space-y-4 shrink-0 bg-gray-50/30">
+                    <div>
+                        <label className="block text-[10px] uppercase font-bold text-gray-400 mb-2">Metode Pembayaran</label>
+                        <div className="flex gap-2">
+                            <PaymentOption id="cash" label="Tunai" icon="💵" />
+                            <PaymentOption id="qris" label="QRIS" icon="📱" />
+                            <PaymentOption id="card" label="Kartu" icon="💳" />
                         </div>
                     </div>
+
+                    <div className="space-y-1 pt-2 border-t border-gray-100">
+                        <div className="flex justify-between text-xs text-gray-500"><span>Subtotal</span><span>{formatRupiah(subtotal)}</span></div>
+                        <div className="flex justify-between text-xs text-gray-500"><span>Pajak (10%)</span><span>{formatRupiah(tax)}</span></div>
+                        <div className="flex justify-between pt-2 mt-1">
+                            <span className="font-bold text-gray-800 text-sm">TOTAL BAYAR</span>
+                            <span className="text-xl font-black text-orange-600">{formatRupiah(total)}</span>
+                        </div>
+                    </div>
+
                     <button disabled={cart.length === 0 || !tableNumber.trim() || !customerName.trim()} onClick={handleCheckout}
-                        className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-semibold text-sm transition-all disabled:opacity-40 disabled:cursor-not-allowed">
-                        {isTableOccupied ? `Tambah ke Meja ${tableNumber.trim()}` : 'Proses Pesanan'}
+                        className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-orange-500/20 transition-all disabled:opacity-40 disabled:grayscale disabled:shadow-none">
+                        BAYAR SEKARANG
                     </button>
                 </div>
             </div>
 
-            {/* Success Modal */}
+            {/* Success Receipt Modal */}
             {successOrder && (
-                <div className="fixed inset-0 bg-black/30 z-[200] flex items-center justify-center p-4 animate-fade-in">
-                    <div className="bg-white rounded-2xl p-6 max-w-xs w-full text-center shadow-lg animate-scale-in">
-                        <div className="w-12 h-12 bg-green-50 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">✓</div>
-                        <h2 className="text-base font-semibold text-gray-800 mb-1">Pesanan Berhasil</h2>
-                        <p className="text-sm text-gray-400 mb-4">Diteruskan ke dapur.</p>
-                        <div className="bg-gray-50 p-3 rounded-lg mb-4 text-left space-y-2">
-                            <div className="flex justify-between text-sm"><span className="text-gray-400">No. Order</span><span className="font-semibold text-gray-800">{successOrder.name}</span></div>
-                            <div className="flex justify-between text-sm"><span className="text-gray-400">Total</span><span className="font-bold text-gray-800">{formatRupiah(successOrder.total_amount)}</span></div>
+                <div className="fixed inset-0 bg-black/40 z-[200] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-2xl p-6 max-w-xs w-full shadow-2xl animate-scale-in border-t-4 border-green-500">
+                        <div className="w-12 h-12 bg-green-50 text-green-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl font-bold">✓</div>
+                        <h2 className="text-lg font-bold text-gray-800 mb-1 text-center">Pembayaran Berhasil</h2>
+                        <p className="text-xs text-gray-400 mb-6 text-center">Transaksi telah dicatat dan stok diperbarui.</p>
+
+                        <div className="bg-gray-50 p-4 rounded-xl mb-6 space-y-2 border border-gray-100">
+                            <div className="flex justify-between text-[11px]"><span className="text-gray-400 uppercase font-bold">No. Order</span><span className="font-bold text-gray-800">{successOrder.name}</span></div>
+                            <div className="flex justify-between text-[11px]"><span className="text-gray-400 uppercase font-bold">Meja</span><span className="font-bold text-gray-800">{successOrder.table}</span></div>
+                            <div className="flex justify-between text-[11px]"><span className="text-gray-400 uppercase font-bold">Metode</span><span className="font-bold text-orange-600 uppercase italic">{paymentMethod}</span></div>
+                            <div className="h-px bg-gray-200 my-2"></div>
+                            <div className="flex justify-between text-xs font-black"><span className="text-gray-800">TOTAL</span><span className="text-gray-800">{formatRupiah(successOrder.total_amount)}</span></div>
                         </div>
-                        <button onClick={() => { setSuccessOrder(null); fetchOccupiedTables(); }} className="w-full py-2 bg-orange-500 text-white rounded-lg font-medium text-sm hover:bg-orange-600 transition-colors">Order Baru</button>
+
+                        <button onClick={() => setSuccessOrder(null)} className="w-full py-3 bg-gray-800 text-white rounded-xl font-bold text-sm hover:bg-gray-900 transition-colors">TUTUP</button>
                     </div>
                 </div>
             )}

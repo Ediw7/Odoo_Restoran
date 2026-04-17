@@ -363,6 +363,9 @@ class RestoranAPI(http.Controller):
             if date_filter == 'today':
                 domain.append(('order_date', '>=', today))
                 domain.append(('order_date', '<', today + timedelta(days=1)))
+            elif date_filter == 'week':
+                start_week = today - timedelta(days=today.weekday())
+                domain.append(('order_date', '>=', start_week))
             elif date_filter == 'month':
                 first_day = today.replace(day=1)
                 domain.append(('order_date', '>=', first_day))
@@ -426,45 +429,40 @@ class RestoranAPI(http.Controller):
             cabang_id = data['cabang_id']
             table_number = data.get('table_number', '')
             order_type = data.get('order_type', 'dine_in')
+            payment_method = data.get('payment_method')
             lines_data = data['lines']
 
-            # Check if there's an active order for this table
-            active_order = False
-            if order_type == 'dine_in' and table_number:
-                active_order = request.env['restoran.order'].sudo().search([
-                    ('cabang_id', '=', cabang_id),
-                    ('table_number', '=', table_number),
-                    ('state', 'in', ['draft', 'confirmed', 'preparing', 'ready'])
-                ], limit=1)
-
-            if active_order:
-                # Append to existing order
-                new_lines = [(0, 0, {
+            # Create brand new order (Simplified: record at the end of meal)
+            order_vals = {
+                'cabang_id': cabang_id,
+                'order_type': order_type,
+                'table_number': table_number,
+                'customer_name': data.get('customer_name', ''),
+                'customer_phone': data.get('customer_phone', ''),
+                'payment_method': payment_method,
+                'note': data.get('note', ''),
+                'line_ids': [(0, 0, {
                     'menu_id': line['menu_id'],
                     'qty': line.get('qty', 1),
                     'note': line.get('note', ''),
-                }) for line in lines_data]
-                active_order.write({'line_ids': new_lines})
-                order = active_order
+                }) for line in lines_data],
+            }
+            order = request.env['restoran.order'].sudo().create(order_vals)
+            
+            # Auto-confirm and Auto-complete if payment is done
+            if payment_method:
+                order.action_confirm()
+                order.action_done(payment_method)
             else:
-                # Create brand new order
-                order_vals = {
-                    'cabang_id': cabang_id,
-                    'order_type': order_type,
-                    'table_number': table_number,
-                    'customer_name': data.get('customer_name', ''),
-                    'customer_phone': data.get('customer_phone', ''),
-                    'payment_method': data.get('payment_method', False),
-                    'note': data.get('note', ''),
-                    'line_ids': [(0, 0, {
-                        'menu_id': line['menu_id'],
-                        'qty': line.get('qty', 1),
-                        'note': line.get('note', ''),
-                    }) for line in lines_data],
-                }
-                order = request.env['restoran.order'].sudo().create(order_vals)
+                # Still confirm to deduct stock
+                order.action_confirm()
 
-            return self._json_response({'status': 'success', 'data': {'id': order.id, 'name': order.name, 'table': table_number or '-'}})
+            return self._json_response({'status': 'success', 'data': {
+                'id': order.id, 
+                'name': order.name, 
+                'total_amount': order.total_amount,
+                'table': table_number or '-'
+            }})
         except Exception as e:
             return self._json_response({'status': 'error', 'message': str(e)}, 500)
 
@@ -538,6 +536,10 @@ class RestoranAPI(http.Controller):
             elif period == 'month':
                 first_day_of_month = today.replace(day=1)
                 order_domain += [('order_date', '>=', first_day_of_month.strftime('%Y-%m-%d 00:00:00'))]
+            elif period == 'week':
+                # Start of current week (Monday)
+                start_week = today - timedelta(days=today.weekday())
+                order_domain += [('order_date', '>=', start_week.strftime('%Y-%m-%d 00:00:00'))]
             elif period == 'year':
                 first_day_of_year = today.replace(month=1, day=1)
                 order_domain += [('order_date', '>=', first_day_of_year.strftime('%Y-%m-%d 00:00:00'))]
@@ -689,6 +691,10 @@ class RestoranAPI(http.Controller):
                     if filter_mode == 'day':
                         dt = datetime.strptime(filter_value, '%Y-%m-%d').date()
                         start_date = end_date = dt
+                    elif filter_mode == 'week':
+                        dt = datetime.strptime(filter_value, '%Y-%m-%d').date()
+                        start_date = dt - timedelta(days=dt.weekday())
+                        end_date = start_date + timedelta(days=6)
                     elif filter_mode == 'month':
                         dt = datetime.strptime(filter_value, '%Y-%m').date()
                         start_date = dt.replace(day=1)
@@ -715,12 +721,40 @@ class RestoranAPI(http.Controller):
             total_revenue = 0.0
             total_cogs = 0.0
             top_profit_menus = {}
+            top_tables = {}
 
             # Cache the BOM cost to speed up
             menu_cost_cache = {}
 
+            # Group data for charts (By Date/Month)
+            chart_dict = {}
+
             for order in orders:
                 total_revenue += order.total_amount
+                
+                # Top Tables aggregation
+                tbl = order.table_number or '-'
+                if tbl not in top_tables:
+                    top_tables[tbl] = {'table': tbl, 'count': 0, 'total': 0.0}
+                top_tables[tbl]['count'] += 1
+                top_tables[tbl]['total'] += order.total_amount
+
+                # Determine chart label
+                order_date = order.order_date
+                if filter_mode == 'day':
+                    lbl = order_date.strftime('%H:') + '00' # hourly
+                elif filter_mode in ['week', 'month']:
+                    lbl = order_date.strftime('%d %b') # daily
+                else:
+                    lbl = order_date.strftime('%b %Y') # monthly
+                    
+                if lbl not in chart_dict:
+                    chart_dict[lbl] = {'label': lbl, 'revenue': 0, 'profit': 0}
+                    
+                chart_dict[lbl]['revenue'] += order.total_amount
+
+                # Calculate COGS line by line
+                order_total_cogs = 0.0
                 for line in order.line_ids:
                     menu = line.menu_id
                     qty_sold = line.qty
@@ -729,12 +763,11 @@ class RestoranAPI(http.Controller):
                     if menu.id not in menu_cost_cache:
                         hpp = 0.0
                         for bom in menu.bom_line_ids:
-                            # Cost = Standard Price of Raw Material * Qty Needed
                             hpp += bom.qty * bom.bahan_id.price_per_unit
                         menu_cost_cache[menu.id] = hpp
                     
                     line_cogs = menu_cost_cache[menu.id] * qty_sold
-                    total_cogs += line_cogs
+                    order_total_cogs += line_cogs
                     line_profit = line.subtotal - line_cogs
 
                     if menu.id not in top_profit_menus:
@@ -753,8 +786,17 @@ class RestoranAPI(http.Controller):
                     top_profit_menus[menu.id]['cogs'] += line_cogs
                     top_profit_menus[menu.id]['profit'] += line_profit
 
+                total_cogs += order_total_cogs
+                chart_dict[lbl]['profit'] += (order.total_amount - order_total_cogs)
+
             # Sort top menus by profit
             sorted_menus = sorted(top_profit_menus.values(), key=lambda x: x['profit'], reverse=True)
+            
+            # Sort top tables by total revenue
+            sorted_tables = sorted(top_tables.values(), key=lambda x: x['total'], reverse=True)
+            
+            # Sort chart data chronologically
+            chart_data = sorted(chart_dict.values(), key=lambda x: x['label'])
 
             return self._json_response({'status': 'success', 'data': {
                 'filter_label': f"Periode: {start_date.strftime('%d %b %Y')} s/d {end_date.strftime('%d %b %Y')}",
@@ -763,7 +805,9 @@ class RestoranAPI(http.Controller):
                 'gross_profit': total_revenue - total_cogs,
                 'gross_margin_pct': round(((total_revenue - total_cogs) / total_revenue) * 100, 1) if total_revenue > 0 else 0,
                 'total_orders': len(orders),
-                'top_profit_menus': sorted_menus[:10]
+                'top_profit_menus': sorted_menus[:10],
+                'top_tables': sorted_tables[:10],
+                'chart_data': chart_data
             }})
         except Exception as e:
             _logger.error(f"Error finance report: {e}")

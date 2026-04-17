@@ -295,6 +295,9 @@ export default function DashboardCabang({ cabangId }) {
     const [txLoading, setTxLoading] = useState(true);
     const [txFilter, setTxFilter] = useState('all');
     const [selectedOrder, setSelectedOrder] = useState(null);
+    const [txPage, setTxPage] = useState(1);
+    const txLimit = 10;
+    const [totalTx, setTotalTx] = useState(0);
 
     // Fetch Dashboard Stats
     useEffect(() => {
@@ -325,18 +328,22 @@ export default function DashboardCabang({ cabangId }) {
         const fetchTransactions = async () => {
             if (!cabangId) return;
             setTxLoading(true);
-            const res = await api.getOrders(cabangId, txFilter !== 'all' ? txFilter : undefined);
-            if (res?.status === 'success') setTransactions(res.data);
+            const offset = (txPage - 1) * txLimit;
+            const res = await api.getOrders(cabangId, txFilter !== 'all' ? txFilter : undefined, undefined, txLimit, offset);
+            if (res?.status === 'success') {
+                setTransactions(res.data);
+                setTotalTx(res.total || 0);
+            }
             setTxLoading(false);
         };
         fetchTransactions();
-        const poll = setInterval(fetchTransactions, 15000);
-        return () => clearInterval(poll);
-    }, [cabangId, txFilter]);
+    }, [cabangId, txFilter, txPage]);
 
     // Computed
-    const filteredTx = transactions;
-    const activeOrders = useMemo(() => filteredTx.filter(o => ['draft', 'confirmed', 'preparing', 'ready'].includes(o.state)).length, [filteredTx]);
+    const avgOrder = useMemo(() => {
+        if (!data?.global?.total_orders || data.global.total_orders === 0) return 0;
+        return data.global.total_revenue / data.global.total_orders;
+    }, [data]);
 
     // Guards (after hooks)
     if (!cabangId) {
@@ -370,13 +377,7 @@ export default function DashboardCabang({ cabangId }) {
     const myCabang = data.cabang_stats[0];
 
     const statusFilters = [
-        { value: 'all', label: 'Semua', color: 'bg-gray-100 text-gray-600' },
-        { value: 'draft', label: 'Draft', color: 'bg-gray-100 text-gray-500' },
-        { value: 'confirmed', label: 'Konfirmasi', color: 'bg-blue-100 text-blue-700' },
-        { value: 'preparing', label: 'Disiapkan', color: 'bg-amber-100 text-amber-700' },
-        { value: 'ready', label: 'Siap Saji', color: 'bg-emerald-100 text-emerald-700' },
-        { value: 'done', label: 'Selesai', color: 'bg-green-100 text-green-700' },
-        { value: 'cancelled', label: 'Batal', color: 'bg-red-100 text-red-700' },
+        { value: 'all', label: 'Semua Transaksi', color: 'bg-gray-100 text-gray-600' }
     ];
 
     return (
@@ -398,6 +399,7 @@ export default function DashboardCabang({ cabangId }) {
                     <select value={period} onChange={(e) => setPeriod(e.target.value)}
                         className="bg-white border border-gray-200 text-gray-800 text-sm font-medium rounded-lg px-4 py-2.5 outline-none focus:border-orange-400 cursor-pointer shadow-sm">
                         <option value="today">Hari Ini</option>
+                        <option value="week">Minggu Ini</option>
                         <option value="month">Bulan Ini</option>
                         <option value="year">Tahun Ini</option>
                         <option value="all">Semua Waktu</option>
@@ -414,7 +416,7 @@ export default function DashboardCabang({ cabangId }) {
                 <StatCard title="Pendapatan" value={formatRupiah(data.global.total_revenue)} />
                 <StatCard title="Pesanan Selesai" value={data.global.total_orders} />
                 <StatCard title="Menu Tersedia" value={data.global.total_menu_available} />
-                <StatCard title="Order Aktif" value={activeOrders} highlight={activeOrders > 0} />
+                <StatCard title="Rata-rata/Order" value={formatRupiah(avgOrder)} highlight={true} />
             </div>
 
             {/* ========== GRAFIK PENDAPATAN (Full Width) ========== */}
@@ -468,22 +470,9 @@ export default function DashboardCabang({ cabangId }) {
             {/* ========== TABEL TRANSAKSI ========== */}
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                 <div className="p-5 border-b border-gray-100">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div>
-                            <h2 className="text-base font-bold text-gray-800 tracking-tight">Monitoring Transaksi</h2>
-                            <p className="text-xs text-gray-400 mt-0.5">{filteredTx.length} transaksi • auto-refresh 15 detik • klik untuk detail</p>
-                        </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2 mt-4">
-                        {statusFilters.map(f => (
-                            <button key={f.value} onClick={() => setTxFilter(f.value)}
-                                className={`text-xs font-semibold px-3 py-1.5 rounded-full transition-all ${txFilter === f.value
-                                    ? 'bg-gray-800 text-white shadow-md scale-105'
-                                    : f.color + ' hover:scale-105'
-                                    }`}>
-                                {f.label}
-                            </button>
-                        ))}
+                    <div>
+                        <h2 className="text-base font-bold text-gray-800 tracking-tight">Riwayat Transaksi Terakhir</h2>
+                        <p className="text-xs text-gray-400 mt-0.5">{transactions.length} transaksi hari ini • auto-refresh 15 detik</p>
                     </div>
                 </div>
 
@@ -491,7 +480,7 @@ export default function DashboardCabang({ cabangId }) {
                     <div className="flex items-center justify-center py-16">
                         <div className="w-5 h-5 border-2 border-gray-200 border-t-orange-600 rounded-full animate-spin"></div>
                     </div>
-                ) : filteredTx.length === 0 ? (
+                ) : transactions.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-16 text-gray-400">
 
                         <p className="text-sm font-medium">Belum ada transaksi</p>
@@ -503,59 +492,77 @@ export default function DashboardCabang({ cabangId }) {
                                 <tr className="bg-gray-50/80 border-b border-gray-100">
                                     <th className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">No. Order</th>
                                     <th className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Waktu</th>
-                                    <th className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Tipe</th>
                                     <th className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Pelanggan</th>
                                     <th className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Item</th>
                                     <th className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Total</th>
-                                    <th className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Bayar</th>
-                                    <th className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status</th>
+                                    <th className="text-left px-5 py-3 text-[10px] font-bold text-gray-400 uppercase tracking-wider text-right">Bayar</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {filteredTx.map((order) => (
+                                {transactions.map((order) => (
                                     <tr key={order.id} onClick={() => setSelectedOrder(order)}
                                         className="hover:bg-blue-50/40 cursor-pointer transition-colors group">
                                         <td className="px-5 py-3.5">
                                             <span className="font-bold text-gray-700 group-hover:text-blue-700 transition-colors">{order.name}</span>
                                         </td>
                                         <td className="px-5 py-3.5 text-gray-500 whitespace-nowrap">{formatTime(order.order_date)}</td>
-                                        <td className="px-5 py-3.5">
-                                            <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md">
-                                                {getTypeLabel(order.order_type)}
-                                            </span>
-                                        </td>
                                         <td className="px-5 py-3.5 text-gray-600 font-medium">
                                             {order.customer_name || <span className="text-gray-300">—</span>}
                                         </td>
                                         <td className="px-5 py-3.5 text-gray-500 font-semibold">{order.total_items}</td>
                                         <td className="px-5 py-3.5 font-bold text-gray-700 whitespace-nowrap">{formatRupiah(order.total_amount)}</td>
-                                        <td className="px-5 py-3.5 text-gray-500 uppercase text-xs font-semibold">{order.payment_method || '—'}</td>
-                                        <td className="px-5 py-3.5">
-                                            <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${getStatusColor(order.state)}`}>
-                                                {getStatusLabel(order.state)}
-                                            </span>
-                                        </td>
+                                        <td className="px-5 py-3.5 text-gray-500 uppercase text-xs font-semibold text-right">{order.payment_method || '—'}</td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
                 )}
+
+                {/* Pagination Controls */}
+                {totalTx > txLimit && (
+                    <div className="px-5 py-3 bg-gray-50/50 border-t border-gray-100 flex items-center justify-between">
+                        <p className="text-xs text-gray-400 font-medium tracking-tight">
+                            Menampilkan <span className="text-gray-900 font-bold">{Math.min(transactions.length, txLimit)}</span> dari <span className="text-gray-900 font-bold">{totalTx}</span> transaksi
+                        </p>
+                        <div className="flex items-center gap-1">
+                            <button
+                                disabled={txPage === 1}
+                                onClick={() => setTxPage(txPage - 1)}
+                                className="p-2 rounded-lg hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                            >
+                                <span className="text-sm font-bold text-gray-700">←</span>
+                            </button>
+                            <span className="text-xs font-black px-3 text-gray-400 uppercase tracking-widest">Hal {txPage}</span>
+                            <button
+                                disabled={txPage * txLimit >= totalTx}
+                                onClick={() => setTxPage(txPage + 1)}
+                                className="p-2 rounded-lg hover:bg-white hover:shadow-sm border border-transparent hover:border-gray-200 disabled:opacity-30 disabled:pointer-events-none transition-all"
+                            >
+                                <span className="text-sm font-bold text-gray-700">→</span>
+                            </button>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Peringatan jika tutup */}
-            {!myCabang.is_open && (
-                <div className="mt-8 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm font-medium flex items-center gap-3">
+            {
+                !myCabang.is_open && (
+                    <div className="mt-8 p-4 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm font-medium flex items-center gap-3">
 
-                    Cabang sedang ditutup. Anda tidak dapat menerima pesanan baru.
-                </div>
-            )}
+                        Cabang sedang ditutup. Anda tidak dapat menerima pesanan baru.
+                    </div>
+                )
+            }
 
             {/* Order Detail Modal */}
-            {selectedOrder && (
-                <OrderDetailModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
-            )}
-        </div>
+            {
+                selectedOrder && (
+                    <OrderDetailModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
+                )
+            }
+        </div >
     );
 }
 

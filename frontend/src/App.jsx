@@ -19,7 +19,6 @@ export default function App() {
   const [time, setTime] = useState("--:--:--");
   const [cabangList, setCabangList] = useState([]);
   const [activeCabangId, setActiveCabangId] = useState("");
-  const [activeOrdersCount, setActiveOrdersCount] = useState(0);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -44,24 +43,12 @@ export default function App() {
   useEffect(() => {
     if (isLoggedIn) {
       fetchMetadata();
-      let poll = setInterval(() => checkActiveOrders(), 10000);
-      return () => clearInterval(poll);
     }
   }, [isLoggedIn, activeCabangId]);
 
   const fetchMetadata = async () => {
     const cs = await api.getCabang();
     if (cs?.status === 'success') setCabangList(cs.data);
-    checkActiveOrders();
-  };
-
-  const checkActiveOrders = async () => {
-    const res = await api.getOrders();
-    if (res?.status === 'success') {
-      let data = res.data;
-      if (activeCabangId) data = data.filter(o => o.cabang.id === parseInt(activeCabangId));
-      setActiveOrdersCount(data.filter(o => ['draft', 'confirmed', 'preparing', 'ready'].includes(o.state)).length);
-    }
   };
 
   const handleLogout = () => {
@@ -79,14 +66,14 @@ export default function App() {
     : [
       { id: "dashboard", label: "Dashboard" },
       { id: "pos", label: "Kasir" },
-      { id: "orders", label: "Pesanan", badge: activeOrdersCount },
+      { id: "orders", label: "Riwayat Transaksi" },
       { id: "inventory", label: "Stok Etalase" },
       { id: "bahan_baku", label: "Gudang Bahan" },
       { id: "report", label: "Laporan" },
     ];
 
   const pageTitles = {
-    dashboard: 'Dashboard', pos: 'Kasir', orders: 'Daftar Pesanan',
+    dashboard: 'Dashboard', pos: 'Kasir', orders: 'Riwayat Transaksi harian',
     inventory: 'Stok Etalase', bahan_baku: 'Bahan Baku Mentah', menu: 'Kelola Menu', report: 'Laporan Keuangan'
   };
 
