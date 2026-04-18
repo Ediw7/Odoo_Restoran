@@ -23,6 +23,7 @@ class RestoranOrder(models.Model):
     table_number = fields.Char(string='No. Meja')
     customer_name = fields.Char(string='Nama Pelanggan')
     customer_phone = fields.Char(string='Telepon Pelanggan')
+    customer_id = fields.Many2one('restoran.customer', string='Database Pelanggan')
 
     order_type = fields.Selection([
         ('dine_in', 'Dine In'),
@@ -108,6 +109,20 @@ class RestoranOrder(models.Model):
                     'Metode pembayaran harus dipilih sebelum menyelesaikan order!'
                 )
             order.paid_date = fields.Datetime.now()
+            
+            # Update Loyalty
+            if order.customer_name:
+                Customer = self.env['restoran.customer'].sudo()
+                cust = Customer.search([('name', '=', order.customer_name)], limit=1)
+                if not cust:
+                    cust = Customer.create({
+                        'name': order.customer_name,
+                        'phone': order.customer_phone or '-'
+                    })
+                
+                order.customer_id = cust.id
+                cust.register_visit()
+                
         self.write({'state': 'done'})
 
     def action_cancel(self):

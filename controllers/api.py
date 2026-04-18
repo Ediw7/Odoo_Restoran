@@ -891,16 +891,67 @@ class RestoranAPI(http.Controller):
         if request.httprequest.method == 'OPTIONS':
             return self._cors_preflight()
         try:
-            data_str = request.httprequest.data.decode('utf-8')
-            data = json.loads(data_str) if data_str else {}
-            if 'params' in data: data = data['params']
+            wastage_id = None
+            if request.httprequest.data:
+                data = json.loads(request.httprequest.data.decode('utf-8'))
+                if 'params' in data: data = data['params']
+                wastage_id = data.get('wastage_id')
 
-            wastage_id = data.get('wastage_id')
             wastage = request.env['restoran.wastage'].sudo().browse(int(wastage_id))
             if not wastage.exists():
                 return self._json_response({'status': 'error', 'message': 'Data wastage tidak ditemukan!'}, 404)
             
             wastage.action_done()
             return self._json_response({'status': 'success', 'message': f'Stok dari {wastage.name} berhasil dipotong.'})
+        except Exception as e:
+            return self._json_response({'status': 'error', 'message': str(e)}, 500)
+
+    # ==========================================
+    # API LOYALTY CUSTOMER
+    # ==========================================
+    @http.route('/api/customer_check', type='http', auth='public', methods=['GET', 'OPTIONS'], csrf=False)
+    def check_customer(self, **kwargs):
+        if request.httprequest.method == 'OPTIONS':
+            return self._cors_preflight()
+        try:
+            name = kwargs.get('name')
+            if not name:
+                return self._json_response({'status': 'error', 'message': 'Name must be provided'}, 400)
+            
+            cust = request.env['restoran.customer'].sudo().search([('name', '=', name)], limit=1)
+            if not cust:
+                return self._json_response({'status': 'not_found', 'message': 'Pelanggan belum terdaftar'})
+            
+            return self._json_response({
+                'status': 'success',
+                'data': {
+                    'id': cust.id,
+                    'name': cust.name,
+                    'phone': cust.phone,
+                    'visit_count': cust.visit_count,
+                    'loyalty_points': cust.loyalty_points,
+                    'is_eligible_reward': cust.visit_count >= 10,
+                    'reward_message': "Selamat! Pelanggan berhak mendapatkan 1 kopi gratis!" if cust.visit_count >= 10 else f"{10 - cust.visit_count} kunjungan lagi untuk kopi gratis."
+                }
+            })
+        except Exception as e:
+            return self._json_response({'status': 'error', 'message': str(e)}, 500)
+
+    @http.route('/api/top_customers', type='http', auth='public', methods=['GET', 'OPTIONS'], csrf=False)
+    def get_top_customers(self, **kwargs):
+        if request.httprequest.method == 'OPTIONS':
+            return self._cors_preflight()
+        try:
+            customers = request.env['restoran.customer'].sudo().search([], order='visit_count desc', limit=5)
+            data = []
+            for c in customers:
+                data.append({
+                    'id': c.id,
+                    'name': c.name,
+                    'phone': c.phone,
+                    'visit_count': c.visit_count,
+                    'loyalty_points': c.loyalty_points
+                })
+            return self._json_response({'status': 'success', 'data': data})
         except Exception as e:
             return self._json_response({'status': 'error', 'message': str(e)}, 500)

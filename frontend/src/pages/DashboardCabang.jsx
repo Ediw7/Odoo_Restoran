@@ -215,6 +215,40 @@ function TopMenuList({ data }) {
 }
 
 // ============================================
+// CHART: Pelanggan Terfavorit (Loyalty Leaderboard)
+// ============================================
+function TopCustomerList({ data }) {
+    if (!data || data.length === 0) {
+        return <div className="text-sm text-gray-400 text-center py-6">Belum ada pelanggan terdaftar</div>;
+    }
+
+    const medals = ['🥈', '🥇', '🥉']; // Sorted 2, 1, 3 for center focus? No, 1st is 0 idx
+    const medalIcons = ['🥇', '🥈', '🥉'];
+
+    return (
+        <div className="space-y-2">
+            {data.map((item, i) => (
+                <div key={i} className="flex items-center justify-between bg-white border border-gray-100 rounded-xl px-4 py-3 hover:shadow-sm transition-all border-l-4" style={{ borderLeftColor: i === 0 ? '#fbbf24' : i === 1 ? '#94a3b8' : i === 2 ? '#d97706' : '#f1f5f9' }}>
+                    <div className="flex items-center gap-3">
+                        <span className="text-xl w-8 text-center">
+                            {i < 3 ? medalIcons[i] : <span className="text-xs font-black text-gray-300">#{i + 1}</span>}
+                        </span>
+                        <div>
+                            <p className="text-sm font-bold text-gray-800">{item.name}</p>
+                            <p className="text-[10px] text-gray-400 font-mono">{item.phone}</p>
+                        </div>
+                    </div>
+                    <div className="text-right">
+                        <p className="text-sm font-black text-orange-600">{item.visit_count}x <span className="text-[10px] text-gray-300 font-medium">Kunjungan</span></p>
+                        <p className="text-[10px] text-gray-400">{item.loyalty_points} Poin</p>
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
+}
+
+// ============================================
 // Detail Order Modal
 // ============================================
 function OrderDetailModal({ order, onClose }) {
@@ -299,6 +333,10 @@ export default function DashboardCabang({ cabangId }) {
     const txLimit = 10;
     const [totalTx, setTotalTx] = useState(0);
 
+    // Top Customers
+    const [topCustomers, setTopCustomers] = useState([]);
+    const [customerLoading, setCustomerLoading] = useState(true);
+
     // Fetch Dashboard Stats
     useEffect(() => {
         const fetchDashboard = async () => {
@@ -338,6 +376,17 @@ export default function DashboardCabang({ cabangId }) {
         };
         fetchTransactions();
     }, [cabangId, txFilter, txPage]);
+
+    // Fetch Top Customers
+    useEffect(() => {
+        const fetchTopCustomers = async () => {
+            setCustomerLoading(true);
+            const res = await api.apiFetch('/api/top_customers');
+            if (res?.status === 'success') setTopCustomers(res.data);
+            setCustomerLoading(false);
+        };
+        fetchTopCustomers();
+    }, []);
 
     // Computed
     const avgOrder = useMemo(() => {
@@ -442,28 +491,48 @@ export default function DashboardCabang({ cabangId }) {
                 </div>
             </div>
 
-            {/* ========== 2-COLUMN: Menu Terlaris + Metode Pembayaran ========== */}
+            {/* ========== 2-COLUMN: Pelanggan Terbaik + Top Menu ========== */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                {/* Menu Terlaris */}
+                {/* Pelanggan Terbaik */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                    <div className="p-5 border-b border-gray-100 bg-orange-50/20">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h2 className="text-base font-bold text-gray-800 tracking-tight">🏆 Pelanggan Terfavorit</h2>
+                                <p className="text-xs text-gray-400 mt-0.5">Top 5 loyalitas berdasarkan jumlah kunjungan</p>
+                            </div>
+                            <span className="bg-orange-100 text-orange-600 text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-wider">Loyalty Leaderboard</span>
+                        </div>
+                    </div>
+                    <div className="p-4">
+                        {customerLoading ? (
+                            <div className="py-10 flex justify-center"><div className="w-4 h-4 border-2 border-gray-200 border-t-orange-500 rounded-full animate-spin"></div></div>
+                        ) : (
+                            <TopCustomerList data={topCustomers} />
+                        )}
+                    </div>
+                </div>
+
+                {/* Menu Terlaris (Pencapaian) */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                     <div className="p-5 border-b border-gray-100">
-                        <h2 className="text-base font-bold text-gray-800 tracking-tight">Menu Terlaris</h2>
-                        <p className="text-xs text-gray-400 mt-0.5">Top 5 menu paling laris ({chartDays} hari terakhir)</p>
+                        <h2 className="text-base font-bold text-gray-800 tracking-tight">🔥 Menu Terlaris</h2>
+                        <p className="text-xs text-gray-400 mt-0.5">Top 10 menu paling laris ({chartDays} hari terakhir)</p>
                     </div>
                     <div className="p-4">
                         <TopMenuList data={analytics?.top_menu} />
                     </div>
                 </div>
+            </div>
 
-                {/* Metode Pembayaran */}
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                    <div className="p-5 border-b border-gray-100">
-                        <h2 className="text-base font-bold text-gray-800 tracking-tight">Metode Pembayaran</h2>
-                        <p className="text-xs text-gray-400 mt-0.5">Breakdown pembayaran ({chartDays} hari terakhir)</p>
-                    </div>
-                    <div className="p-4">
-                        <PaymentBreakdown data={analytics?.payment_breakdown} />
-                    </div>
+            {/* ========== 1-COLUMN: Metode Pembayaran ========== */}
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden mb-8">
+                <div className="p-5 border-b border-gray-100">
+                    <h2 className="text-base font-bold text-gray-800 tracking-tight">💳 Metode Pembayaran</h2>
+                    <p className="text-xs text-gray-400 mt-0.5">Breakdown pembayaran ({chartDays} hari terakhir)</p>
+                </div>
+                <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <PaymentBreakdown data={analytics?.payment_breakdown} />
                 </div>
             </div>
 

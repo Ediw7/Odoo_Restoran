@@ -11,11 +11,33 @@ export default function POS({ cabangList, activeCabangId }) {
     const [orderType, setOrderType] = useState("dine_in");
     const [tableNumber, setTableNumber] = useState("");
     const [customerName, setCustomerName] = useState("");
+    const [customerPhone, setCustomerPhone] = useState("");
+    const [loyalty, setLoyalty] = useState(null);
     const [paymentMethod, setPaymentMethod] = useState("cash"); // cash, card, qris, transfer
     const [successOrder, setSuccessOrder] = useState(null);
 
     useEffect(() => { fetchKategoris(); }, []);
     useEffect(() => { fetchMenus(); }, [activeKategori, activeCabangId]);
+    useEffect(() => {
+        if (customerPhone.length >= 10) {
+            const delayDebounce = setTimeout(() => {
+                checkLoyalty();
+            }, 800);
+            return () => clearTimeout(delayDebounce);
+        } else {
+            setLoyalty(null);
+        }
+    }, [customerPhone]);
+
+    const checkLoyalty = async () => {
+        const res = await api.checkCustomer(customerPhone);
+        if (res?.status === 'success') {
+            setLoyalty(res.data);
+            if (res.data.name) setCustomerName(res.data.name);
+        } else {
+            setLoyalty(null);
+        }
+    };
 
     const fetchKategoris = async () => {
         const res = await api.getKategori();
@@ -90,6 +112,7 @@ export default function POS({ cabangList, activeCabangId }) {
             order_type: orderType,
             table_number: tableNumber,
             customer_name: customerName,
+            customer_phone: customerPhone,
             payment_method: paymentMethod,
             lines: cart.map(c => ({ menu_id: c.menu.id, qty: c.qty }))
         };
@@ -100,6 +123,8 @@ export default function POS({ cabangList, activeCabangId }) {
             setCart([]);
             setTableNumber("");
             setCustomerName("");
+            setCustomerPhone("");
+            setLoyalty(null);
             fetchMenus();
         }
         else alert("Gagal Transaksi: " + (res?.message || 'Error'));
@@ -191,18 +216,46 @@ export default function POS({ cabangList, activeCabangId }) {
                             </button>
                         ))}
                     </div>
-                    <div className="grid grid-cols-2 gap-2">
-                        <div>
+                    <div className="grid grid-cols-3 gap-2">
+                        <div className="col-span-1">
                             <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">No. Meja</label>
                             <input type="text" value={tableNumber} onChange={e => setTableNumber(e.target.value)} placeholder="00"
                                 className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-center font-bold outline-none focus:border-orange-400" />
                         </div>
-                        <div>
-                            <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Nama Pelanggan</label>
-                            <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Walk-in"
-                                className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-orange-400" />
+                        <div className="col-span-2">
+                            <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Nama Pelanggan / Loyalty</label>
+                            <div className="flex gap-1.5">
+                                <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Walk-in"
+                                    className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-orange-400" />
+                                <button onClick={async () => {
+                                    if (!customerName) return;
+                                    const res = await api.checkCustomer(customerName);
+                                    if (res.status === 'success') {
+                                        setLoyalty(res.data);
+                                    } else {
+                                        alert(res.message || "Nama belum terdaftar di loyalty.");
+                                        setLoyalty(null);
+                                    }
+                                }} className="shrink-0 bg-white border border-orange-200 hover:border-orange-500 text-orange-500 px-2 py-1.5 rounded-lg text-xs transition-all">
+                                    🔍
+                                </button>
+                            </div>
                         </div>
                     </div>
+                    {loyalty && (
+                        <div className={`p-2.5 rounded-xl border flex items-center gap-3 animate-in slide-in-from-top-2 duration-300 ${loyalty.is_eligible_reward ? 'bg-orange-50 border-orange-200' : 'bg-blue-50/50 border-blue-100'}`}>
+                            <div className="text-xl">
+                                {loyalty.is_eligible_reward ? '🎁' : '⭐'}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Status Loyalty</div>
+                                <div className="text-xs font-bold text-gray-800 truncate">{loyalty.reward_message}</div>
+                                <div className="mt-1 h-1 w-full bg-gray-200 rounded-full overflow-hidden">
+                                    <div className="h-full bg-orange-500 rounded-full transition-all duration-1000" style={{ width: `${Math.min(100, (loyalty.visit_count / 10) * 100)}%` }}></div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 <div className="flex-1 overflow-y-auto p-3">

@@ -90,6 +90,7 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ wastage_id: wastageId })
     }),
+    checkCustomer: (name) => apiFetch(`/api/customer_check?name=${encodeURIComponent(name)}`),
 };
 
 export const formatRupiah = (number) => {

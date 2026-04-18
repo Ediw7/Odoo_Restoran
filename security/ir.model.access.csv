@@ -8,3 +8,4 @@ access_restoran_bahan_user,restoran.bahan.user,model_restoran_bahan,base.group_u
 access_restoran_menu_bom_line_user,restoran.menu.bom.line.user,model_restoran_menu_bom_line,base.group_user,1,1,1,1
 access_restoran_wastage_user,restoran.wastage.user,model_restoran_wastage,base.group_user,1,1,1,1
 access_restoran_wastage_line_user,restoran.wastage.line.user,model_restoran_wastage_line,base.group_user,1,1,1,1
+access_restoran_customer_user,restoran.customer.user,model_restoran_customer,base.group_user,1,1,1,1
