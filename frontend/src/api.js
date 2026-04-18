@@ -91,6 +91,10 @@ export const api = {
         body: JSON.stringify({ wastage_id: wastageId })
     }),
     checkCustomer: (name) => apiFetch(`/api/customer_check?name=${encodeURIComponent(name)}`),
+    claimReward: (name) => apiFetch('/api/customer_claim', {
+        method: 'POST',
+        body: JSON.stringify({ name })
+    }),
 };
 
 export const formatRupiah = (number) => {

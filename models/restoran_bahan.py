@@ -51,9 +51,9 @@ class RestoranBahan(models.Model):
         for rec in self:
             rec.stock_qty += qty
 
-    _sql_constraints = [
-        ('stock_positive', 'CHECK(stock_qty >= 0)', 'Stok tidak boleh negatif!'),
-    ]
+    # _sql_constraints = [
+    #     ('stock_positive', 'CHECK(stock_qty >= 0)', 'Stok tidak boleh negatif!'),
+    # ]
 
 
 class RestoranMenuBomLine(models.Model):

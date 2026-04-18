@@ -15,6 +15,7 @@ export default function POS({ cabangList, activeCabangId }) {
     const [loyalty, setLoyalty] = useState(null);
     const [paymentMethod, setPaymentMethod] = useState("cash"); // cash, card, qris, transfer
     const [successOrder, setSuccessOrder] = useState(null);
+    const [rewardClaimed, setRewardClaimed] = useState(null);
 
     useEffect(() => { fetchKategoris(); }, []);
     useEffect(() => { fetchMenus(); }, [activeKategori, activeCabangId]);
@@ -66,7 +67,53 @@ export default function POS({ cabangList, activeCabangId }) {
             return aOut ? 1 : -1;
         });
 
+    // Automatic Loyalty Check when name changes (Debounce 500ms)
+    useEffect(() => {
+        if (!customerName || customerName === 'Walk-in') {
+            setLoyalty(null);
+            return;
+        }
+
+        const timer = setTimeout(async () => {
+            const res = await api.checkCustomer(customerName);
+            if (res.status === 'success') {
+                setLoyalty(res.data);
+            } else {
+                setLoyalty(null);
+            }
+        }, 500);
+
+        return () => clearTimeout(timer);
+    }, [customerName]);
+
     const isOutOfStock = (m) => m.use_stock && m.stock_qty <= 0;
+
+    const handleClaimReward = async () => {
+        if (!loyalty || !customerName) return;
+        const res = await api.claimReward(customerName);
+        if (res.status === 'success') {
+            // Tambahkan kopi gratis ke cart
+            const kopiGratis = {
+                id: 'reward-kopi',
+                name: '🎁 Hadiah Kopi Gratis',
+                price: 0,
+                available: true,
+                use_stock: false
+            };
+            addToCart(kopiGratis);
+
+            // Refresh loyalty data
+            const resLoyalty = await api.checkCustomer(customerName);
+            if (resLoyalty.status === 'success') setLoyalty(resLoyalty.data);
+
+            setRewardClaimed({
+                name: customerName,
+                item: '1 Kopi Gratis'
+            });
+        } else {
+            // alert(res.message || "Gagal klaim hadiah.");
+        }
+    };
 
     const addToCart = (menu) => {
         if (isOutOfStock(menu)) return;
@@ -242,15 +289,24 @@ export default function POS({ cabangList, activeCabangId }) {
                             </div>
                         </div>
                     </div>
-                    {loyalty && (
-                        <div className={`p-2.5 rounded-xl border flex items-center gap-3 animate-in slide-in-from-top-2 duration-300 ${loyalty.is_eligible_reward ? 'bg-orange-50 border-orange-200' : 'bg-blue-50/50 border-blue-100'}`}>
-                            <div className="text-xl">
-                                {loyalty.is_eligible_reward ? '🎁' : '⭐'}
-                            </div>
+                    {loyalty && loyalty.is_eligible_reward && (
+                        <div className="p-2.5 rounded-xl border flex items-center gap-3 animate-in slide-in-from-top-2 duration-300 bg-orange-50 border-orange-200">
+                            <div className="text-xl">🎁</div>
                             <div className="flex-1 min-w-0">
                                 <div className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Status Loyalty</div>
-                                <div className="text-xs font-bold text-gray-800 truncate">{loyalty.reward_message}</div>
-                                <div className="mt-1 h-1 w-full bg-gray-200 rounded-full overflow-hidden">
+                                <div className="flex items-center justify-between gap-2">
+                                    <div className="text-xs font-bold text-gray-800 truncate">{loyalty.reward_message}</div>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleClaimReward();
+                                        }}
+                                        className="shrink-0 bg-green-500 hover:bg-green-600 text-white px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-tighter shadow-sm animate-pulse"
+                                    >
+                                        Klaim
+                                    </button>
+                                </div>
+                                <div className="mt-1.5 h-1 w-full bg-gray-200 rounded-full overflow-hidden">
                                     <div className="h-full bg-orange-500 rounded-full transition-all duration-1000" style={{ width: `${Math.min(100, (loyalty.visit_count / 10) * 100)}%` }}></div>
                                 </div>
                             </div>
@@ -328,6 +384,23 @@ export default function POS({ cabangList, activeCabangId }) {
                         </div>
 
                         <button onClick={() => setSuccessOrder(null)} className="w-full py-3 bg-gray-800 text-white rounded-xl font-bold text-sm hover:bg-gray-900 transition-colors">TUTUP</button>
+                    </div>
+                </div>
+            )}
+
+            {/* Reward Success Modal */}
+            {rewardClaimed && (
+                <div className="fixed inset-0 bg-black/40 z-[210] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-2xl p-6 max-w-xs w-full shadow-2xl animate-scale-in border-t-4 border-orange-500">
+                        <div className="w-16 h-16 bg-orange-50 text-orange-500 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner animate-bounce">🎁</div>
+                        <h2 className="text-lg font-bold text-gray-800 mb-1 text-center">Reward Diklaim!</h2>
+                        <p className="text-xs text-center text-gray-500 mb-6 leading-relaxed">
+                            <span className="font-bold text-orange-600">{rewardClaimed.item}</span> telah ditambahkan ke keranjang untuk pelanggan <span className="font-bold text-gray-800">{rewardClaimed.name}</span>.
+                        </p>
+
+                        <button onClick={() => setRewardClaimed(null)} className="w-full py-3 bg-orange-500 text-white rounded-xl font-bold text-sm hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20 uppercase tracking-wider">
+                            Mantap!
+                        </button>
                     </div>
                 </div>
             )}

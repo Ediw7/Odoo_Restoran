@@ -24,3 +24,11 @@ class RestoranCustomer(models.Model):
             rec.visit_count += 1
             rec.loyalty_points += 10 # 10 poin per kunjungan
             rec.last_visit = fields.Datetime.now()
+
+    def claim_reward(self):
+        """Klaim hadiah: potong 10 kunjungan"""
+        for rec in self:
+            if rec.visit_count >= 10:
+                rec.visit_count -= 10
+                return True
+            return False

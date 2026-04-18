@@ -442,29 +442,36 @@ class RestoranAPI(http.Controller):
                 'payment_method': payment_method,
                 'note': data.get('note', ''),
                 'line_ids': [(0, 0, {
-                    'menu_id': line['menu_id'],
+                    'menu_id': int(line['menu_id']),
                     'qty': line.get('qty', 1),
                     'note': line.get('note', ''),
-                }) for line in lines_data],
+                }) for line in lines_data if str(line.get('menu_id', '')).isdigit()],
             }
-            order = request.env['restoran.order'].sudo().create(order_vals)
-            
-            # Auto-confirm and Auto-complete if payment is done
-            if payment_method:
-                order.action_confirm()
-                order.action_done(payment_method)
-            else:
-                # Still confirm to deduct stock
-                order.action_confirm()
+            try:
+                order = request.env['restoran.order'].sudo().create(order_vals)
+                
+                # Auto-confirm and Auto-complete if payment is done
+                if payment_method:
+                    order.action_confirm()
+                    order.action_done(payment_method)
+                else:
+                    # Still confirm to deduct stock
+                    order.action_confirm()
 
-            return self._json_response({'status': 'success', 'data': {
-                'id': order.id, 
-                'name': order.name, 
-                'total_amount': order.total_amount,
-                'table': table_number or '-'
-            }})
+                return self._json_response({'status': 'success', 'data': {
+                    'id': order.id, 
+                    'name': order.name, 
+                    'total_amount': order.total_amount,
+                    'table': table_number or '-'
+                }})
+            except Exception as e:
+                _logger.error(f"FATAL ORDER ERROR: {str(e)}")
+                # Raise to ensure transaction is rolled back correctly but we want to see it
+                raise e
+
         except Exception as e:
-            return self._json_response({'status': 'error', 'message': str(e)}, 500)
+            _logger.error(f"Create Order Failed: {str(e)}")
+            return self._json_response({'status': 'error', 'message': f"Gagal Transaksi: {str(e)}"}, 500)
 
     @http.route(['/api/order_status/<int:order_id>/<string:action_name>'], type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
     def update_order_status(self, order_id, action_name, **kwargs):
@@ -953,5 +960,25 @@ class RestoranAPI(http.Controller):
                     'loyalty_points': c.loyalty_points
                 })
             return self._json_response({'status': 'success', 'data': data})
+        except Exception as e:
+            return self._json_response({'status': 'error', 'message': str(e)}, 500)
+    @http.route('/api/customer_claim', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
+    def claim_customer_reward(self, **kwargs):
+        if request.httprequest.method == 'OPTIONS':
+            return self._cors_preflight()
+        try:
+            data_str = request.httprequest.data.decode('utf-8')
+            data = json.loads(data_str) if data_str else {}
+            if 'params' in data: data = data['params']
+            
+            name = data.get('name')
+            cust = request.env['restoran.customer'].sudo().search([('name', '=', name)], limit=1)
+            if not cust:
+                return self._json_response({'status': 'error', 'message': 'Pelanggan tidak ditemukan'}, 404)
+            
+            if cust.claim_reward():
+                return self._json_response({'status': 'success', 'message': 'Reward berhasil diklaim!'})
+            else:
+                return self._json_response({'status': 'error', 'message': 'Kunjungan belum cukup untuk klaim reward.'}, 400)
         except Exception as e:
             return self._json_response({'status': 'error', 'message': str(e)}, 500)
