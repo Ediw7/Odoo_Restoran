@@ -76,7 +76,20 @@ export const api = {
         let url = `/api/report_finance?filter_mode=${filterMode}&filter_value=${filterValue}`;
         if (cabangId) url += `&cabang_id=${cabangId}`;
         return apiFetch(url);
-    }
+    },
+    getWastage: (cabangId, limit = 20, offset = 0) => {
+        let url = `/api/wastage?limit=${limit}&offset=${offset}`;
+        if (cabangId) url += `&cabang_id=${cabangId}`;
+        return apiFetch(url);
+    },
+    createWastage: (cabangId, lines, notes) => apiFetch('/api/wastage_create', {
+        method: 'POST',
+        body: JSON.stringify({ cabang_id: cabangId, lines, notes })
+    }),
+    confirmWastage: (wastageId) => apiFetch('/api/wastage_confirm', {
+        method: 'POST',
+        body: JSON.stringify({ wastage_id: wastageId })
+    }),
 };
 
 export const formatRupiah = (number) => {

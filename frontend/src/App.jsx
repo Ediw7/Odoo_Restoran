@@ -10,6 +10,7 @@ import Menu from "./pages/Menu";
 import Inventory from "./pages/Inventory";
 import BahanBaku from "./pages/BahanBaku";
 import Report from "./pages/Report";
+import Wastage from "./pages/Wastage";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -69,12 +70,14 @@ export default function App() {
       { id: "orders", label: "Riwayat Transaksi" },
       { id: "inventory", label: "Stok Etalase" },
       { id: "bahan_baku", label: "Gudang Bahan" },
+      { id: "wastage", label: "Barang Rusak" },
       { id: "report", label: "Laporan" },
     ];
 
   const pageTitles = {
     dashboard: 'Dashboard', pos: 'Kasir', orders: 'Riwayat Transaksi harian',
-    inventory: 'Stok Etalase', bahan_baku: 'Bahan Baku Mentah', menu: 'Kelola Menu', report: 'Laporan Keuangan'
+    inventory: 'Stok Etalase', bahan_baku: 'Bahan Baku Mentah', menu: 'Kelola Menu', report: 'Laporan Keuangan',
+    wastage: 'Barang Rusak'
   };
 
   if (!isLoggedIn) {
@@ -152,6 +155,7 @@ export default function App() {
           {activePage === "bahan_baku" && <BahanBaku />}
           {activePage === "menu" && <Menu cabangId={activeCabangId} />}
           {activePage === "report" && <Report cabangId={activeCabangId} />}
+          {activePage === "wastage" && <Wastage cabangId={activeCabangId} />}
         </div>
       </main>
 
