@@ -11,6 +11,7 @@ import Inventory from "./pages/Inventory";
 import BahanBaku from "./pages/BahanBaku";
 import Report from "./pages/Report";
 import Wastage from "./pages/Wastage";
+import Dapur from "./pages/Dapur";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -67,6 +68,7 @@ export default function App() {
     : [
       { id: "dashboard", label: "Dashboard" },
       { id: "pos", label: "Kasir" },
+      { id: "dapur", label: "Dapur / Kitchen" },
       { id: "orders", label: "Riwayat Transaksi" },
       { id: "inventory", label: "Stok Etalase" },
       { id: "bahan_baku", label: "Gudang Bahan" },
@@ -75,7 +77,7 @@ export default function App() {
     ];
 
   const pageTitles = {
-    dashboard: 'Dashboard', pos: 'Kasir', orders: 'Riwayat Transaksi harian',
+    dashboard: 'Dashboard', pos: 'Kasir', orders: 'Riwayat Transaksi harian', dapur: 'Dapur (Kitchen Display)',
     inventory: 'Stok Etalase', bahan_baku: 'Bahan Baku Mentah', menu: 'Kelola Menu', report: 'Laporan Keuangan',
     wastage: 'Barang Rusak'
   };
@@ -150,6 +152,7 @@ export default function App() {
           {activePage === "dashboard" && userData?.role === 'admin' && <DashboardAdmin cabangId={activeCabangId} />}
           {activePage === "dashboard" && userData?.role === 'cashier' && <DashboardCabang cabangId={activeCabangId} />}
           {activePage === "pos" && <POS cabangList={cabangList} activeCabangId={activeCabangId} />}
+          {activePage === "dapur" && <Dapur cabangId={activeCabangId} />}
           {activePage === "orders" && <Orders cabangId={activeCabangId} />}
           {activePage === "inventory" && <Inventory activeCabangId={activeCabangId} />}
           {activePage === "bahan_baku" && <BahanBaku />}

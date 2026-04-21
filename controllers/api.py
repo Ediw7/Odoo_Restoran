@@ -357,7 +357,10 @@ class RestoranAPI(http.Controller):
             if cabang_id:
                 domain.append(('cabang_id', '=', int(cabang_id)))
             if state:
-                domain.append(('state', '=', state))
+                if state == 'active':
+                    domain.append(('state', 'in', ['draft', 'confirmed', 'preparing', 'ready']))
+                else:
+                    domain.append(('state', '=', state))
 
             today = Date.context_today(request.env.user)
             if date_filter == 'today':
@@ -432,37 +435,61 @@ class RestoranAPI(http.Controller):
             payment_method = data.get('payment_method')
             lines_data = data['lines']
 
-            # Create brand new order (Simplified: record at the end of meal)
-            order_vals = {
-                'cabang_id': cabang_id,
-                'order_type': order_type,
-                'table_number': table_number,
-                'customer_name': data.get('customer_name', ''),
-                'customer_phone': data.get('customer_phone', ''),
-                'payment_method': payment_method,
-                'note': data.get('note', ''),
-                'line_ids': [(0, 0, {
-                    'menu_id': int(line['menu_id']),
-                    'qty': line.get('qty', 1),
-                    'note': line.get('note', ''),
-                }) for line in lines_data if str(line.get('menu_id', '')).isdigit()],
-            }
+            customer_name = data.get('customer_name', '')
+            
+            # Check if there's an existing active order for this name
+            existing_order = False
+            if customer_name:
+                existing_order = request.env['restoran.order'].sudo().search([
+                    ('cabang_id', '=', cabang_id),
+                    ('customer_name', '=ilike', customer_name),
+                    ('state', 'in', ['draft', 'confirmed', 'preparing', 'ready'])
+                ], limit=1)
+
             try:
-                order = request.env['restoran.order'].sudo().create(order_vals)
-                
-                # Auto-confirm and Auto-complete if payment is done
-                if payment_method:
-                    order.action_confirm()
-                    order.action_done(payment_method)
+                if existing_order and not payment_method:
+                    # Append new items to the existing order
+                    new_lines = [(0, 0, {
+                        'menu_id': int(line['menu_id']),
+                        'qty': line.get('qty', 1),
+                        'note': line.get('note', ''),
+                    }) for line in lines_data if str(line.get('menu_id', '')).isdigit()]
+                    
+                    existing_order.write({
+                        'line_ids': new_lines,
+                        'state': 'confirmed' # Send back to kitchen if it was ready
+                    })
+                    order = existing_order
                 else:
-                    # Still confirm to deduct stock
-                    order.action_confirm()
+                    # Create a brand new order
+                    order_vals = {
+                        'cabang_id': cabang_id,
+                        'order_type': order_type,
+                        'table_number': table_number,
+                        'customer_name': customer_name,
+                        'customer_phone': data.get('customer_phone', ''),
+                        'payment_method': payment_method,
+                        'note': data.get('note', ''),
+                        'line_ids': [(0, 0, {
+                            'menu_id': int(line['menu_id']),
+                            'qty': line.get('qty', 1),
+                            'note': line.get('note', ''),
+                        }) for line in lines_data if str(line.get('menu_id', '')).isdigit()],
+                    }
+                    order = request.env['restoran.order'].sudo().create(order_vals)
+                    
+                    # Auto-confirm and Auto-complete if payment is done
+                    if payment_method:
+                        order.action_confirm()
+                        order.action_done(payment_method)
+                    else:
+                        order.action_confirm()
 
                 return self._json_response({'status': 'success', 'data': {
                     'id': order.id, 
                     'name': order.name, 
                     'total_amount': order.total_amount,
-                    'table': table_number or '-'
+                    'table': order.table_number or '-'
                 }})
             except Exception as e:
                 _logger.error(f"FATAL ORDER ERROR: {str(e)}")
