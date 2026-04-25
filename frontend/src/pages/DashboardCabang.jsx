@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { api, formatRupiah, getStatusLabel, getStatusColor, getTypeLabel, formatTime } from "../api";
+import { useToast } from "../hooks/useToast";
 
 // ============================================
 // CHART: Area Chart Pendapatan (SVG)
@@ -221,6 +222,7 @@ function TopCustomerList({ data }) {
     const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [rewardText, setRewardText] = useState("");
     const [loading, setLoading] = useState(false);
+    const { toast, ToastContainer } = useToast();
 
     if (!data || data.length === 0) {
         return <div className="text-sm text-gray-400 text-center py-6">Belum ada pelanggan terdaftar</div>;
@@ -235,16 +237,17 @@ function TopCustomerList({ data }) {
         const res = await api.injectReward(selectedCustomer.id, rewardText);
         setLoading(false);
         if (res?.status === 'success') {
-            alert(`Reward berhasil diberikan kepada ${selectedCustomer.name}!`);
+            toast.success(`Reward berhasil diberikan kepada ${selectedCustomer.name}!`);
             setSelectedCustomer(null);
             setRewardText("");
         } else {
-            alert(res?.message || "Gagal memberikan reward");
+            toast.error(res?.message || "Gagal memberikan reward");
         }
     };
 
     return (
         <div className="space-y-2 relative">
+            <ToastContainer />
             {data.map((item, i) => (
                 <div key={i} className="flex items-center justify-between bg-white border border-gray-100 rounded-xl px-4 py-3 hover:shadow-sm transition-all border-l-4 group" style={{ borderLeftColor: i === 0 ? '#fbbf24' : i === 1 ? '#94a3b8' : i === 2 ? '#d97706' : '#f1f5f9' }}>
                     <div className="flex items-center gap-3">
@@ -393,6 +396,46 @@ export default function DashboardCabang({ cabangId }) {
     const [topCustomers, setTopCustomers] = useState([]);
     const [customerLoading, setCustomerLoading] = useState(true);
 
+    // PIN Manager
+    const [showChangePinModal, setShowChangePinModal] = useState(false);
+    const [oldPin, setOldPin] = useState('');
+    const [newPin1, setNewPin1] = useState('');
+    const [newPin2, setNewPin2] = useState('');
+    const [pinChangeLoading, setPinChangeLoading] = useState(false);
+    const [pinChangeMsg, setPinChangeMsg] = useState({ type: '', text: '' });
+
+    const handleChangePin = async (e) => {
+        e.preventDefault();
+        setPinChangeMsg({ type: '', text: '' });
+        // Get current PIN from localStorage
+        const storedUser = JSON.parse(localStorage.getItem('restoran_user') || '{}');
+        const currentPin = storedUser.manager_pin || '1234';
+        if (oldPin !== currentPin) {
+            setPinChangeMsg({ type: 'error', text: 'PIN Lama salah. Coba lagi.' });
+            return;
+        }
+        if (newPin1.length !== 4 || !newPin1.match(/^\d+$/)) {
+            setPinChangeMsg({ type: 'error', text: 'PIN Baru harus tepat 4 angka.' });
+            return;
+        }
+        if (newPin1 !== newPin2) {
+            setPinChangeMsg({ type: 'error', text: 'Konfirmasi PIN tidak cocok.' });
+            return;
+        }
+        setPinChangeLoading(true);
+        const res = await api.updatePin(cabangId, newPin1);
+        setPinChangeLoading(false);
+        if (res?.status === 'success') {
+            // Update localStorage so the new PIN is immediately active
+            const updated = { ...storedUser, manager_pin: newPin1 };
+            localStorage.setItem('restoran_user', JSON.stringify(updated));
+            setPinChangeMsg({ type: 'success', text: 'PIN berhasil diperbarui! Silakan ingat PIN baru Anda.' });
+            setOldPin(''); setNewPin1(''); setNewPin2('');
+        } else {
+            setPinChangeMsg({ type: 'error', text: res?.message || 'Gagal update PIN.' });
+        }
+    };
+
     // Fetch Dashboard Stats
     useEffect(() => {
         const fetchDashboard = async () => {
@@ -500,6 +543,11 @@ export default function DashboardCabang({ cabangId }) {
                     <p className="text-sm text-gray-400 mt-1">Dashboard Monitoring & Analitik</p>
                 </div>
                 <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => { setShowChangePinModal(true); setOldPin(''); setNewPin1(''); setNewPin2(''); setPinChangeMsg({ type: '', text: '' }); }}
+                        className="text-xs font-semibold text-gray-400 hover:text-orange-500 bg-white border border-gray-200 px-3 py-2 rounded-lg transition-colors flex items-center gap-1.5">
+                        🔑 Ganti PIN
+                    </button>
                     <span className="text-sm text-gray-400">Periode:</span>
                     <select value={period} onChange={(e) => setPeriod(e.target.value)}
                         className="bg-white border border-gray-200 text-gray-800 text-sm font-medium rounded-lg px-4 py-2.5 outline-none focus:border-orange-400 cursor-pointer shadow-sm">
@@ -687,7 +735,55 @@ export default function DashboardCabang({ cabangId }) {
                     <OrderDetailModal order={selectedOrder} onClose={() => setSelectedOrder(null)} />
                 )
             }
-        </div >
+
+            {/* PIN Change Modal */}
+            {showChangePinModal && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[300] flex items-center justify-center p-4"
+                    onClick={() => setShowChangePinModal(false)}>
+                    <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl border border-gray-100"
+                        onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-center mb-5 border-b border-gray-100 pb-4">
+                            <h3 className="text-lg font-bold text-gray-800">🔑 Ganti PIN Manajer</h3>
+                            <button onClick={() => setShowChangePinModal(false)} className="text-gray-400 hover:text-red-500 font-bold text-xl">&times;</button>
+                        </div>
+
+                        {pinChangeMsg.text && (
+                            <div className={`text-xs p-3 rounded-xl font-bold text-center mb-4 ${pinChangeMsg.type === 'success'
+                                ? 'bg-green-50 text-green-700 border border-green-200'
+                                : 'bg-red-50 text-red-600 border border-red-200'
+                                }`}>
+                                {pinChangeMsg.text}
+                            </div>
+                        )}
+
+                        <form onSubmit={handleChangePin} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">PIN Lama</label>
+                                <input type="password" maxLength={4} value={oldPin} onChange={e => setOldPin(e.target.value)} required
+                                    placeholder="Masukkan PIN saat ini"
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold tracking-[0.3em] outline-none focus:border-orange-400 transition-all" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">PIN Baru (4 Angka)</label>
+                                <input type="password" maxLength={4} value={newPin1} onChange={e => setNewPin1(e.target.value)} required
+                                    placeholder="Contoh: 5678"
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold tracking-[0.3em] outline-none focus:border-orange-400 transition-all" />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Konfirmasi PIN Baru</label>
+                                <input type="password" maxLength={4} value={newPin2} onChange={e => setNewPin2(e.target.value)} required
+                                    placeholder="Ulangi PIN baru"
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold tracking-[0.3em] outline-none focus:border-orange-400 transition-all" />
+                            </div>
+                            <button type="submit" disabled={pinChangeLoading}
+                                className="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-black rounded-xl transition-all disabled:opacity-50 tracking-wider text-sm mt-2">
+                                {pinChangeLoading ? 'Menyimpan...' : 'SIMPAN PIN BARU'}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 }
 

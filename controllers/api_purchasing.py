@@ -110,3 +110,33 @@ class RestoranAPI_Purchasing(RestoranBase):
             return self._json_response({'status': 'success', 'message': f'Barang dari {po.name} berhasil di-stok!'})
         except Exception as e:
             return self._json_response({'status': 'error', 'message': str(e)}, 500)
+
+    @http.route('/api/supplier_create', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
+    def create_supplier(self, **kwargs):
+        if request.httprequest.method == 'OPTIONS': return self._cors_preflight()
+        try:
+            data_str = request.httprequest.data.decode('utf-8')
+            data = json.loads(data_str) if data_str else {}
+            name = data.get('name', '').strip()
+            if not name:
+                return self._json_response({'status': 'error', 'message': 'Nama supplier wajib diisi'}, 400)
+            supplier = request.env['restoran.supplier'].sudo().create({
+                'name': name,
+                'phone': data.get('phone', ''),
+                'address': data.get('address', ''),
+            })
+            return self._json_response({'status': 'success', 'data': {'id': supplier.id, 'name': supplier.name}})
+        except Exception as e:
+            return self._json_response({'status': 'error', 'message': str(e)}, 500)
+
+    @http.route('/api/supplier_delete/<int:supplier_id>', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
+    def delete_supplier(self, supplier_id, **kwargs):
+        if request.httprequest.method == 'OPTIONS': return self._cors_preflight()
+        try:
+            supplier = request.env['restoran.supplier'].sudo().browse(supplier_id)
+            if not supplier.exists():
+                return self._json_response({'status': 'error', 'message': 'Supplier tidak ditemukan'}, 404)
+            supplier.write({'active': False})
+            return self._json_response({'status': 'success', 'message': 'Supplier berhasil dihapus'})
+        except Exception as e:
+            return self._json_response({'status': 'error', 'message': str(e)}, 500)

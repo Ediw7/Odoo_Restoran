@@ -35,7 +35,8 @@ class RestoranAPI_Auth_1(RestoranBase):
                     'name': user.name,
                     'role': user.restoran_role,
                     'cabang_id': user.cabang_id.id if user.cabang_id else None,
-                    'cabang_name': user.cabang_id.name if user.cabang_id else 'Semua Cabang'
+                    'cabang_name': user.cabang_id.name if user.cabang_id else 'Semua Cabang',
+                    'manager_pin': user.cabang_id.manager_pin if user.cabang_id else '1234'
                 }
             })
             

@@ -18,6 +18,7 @@ class RestoranCabang(models.Model):
     )
     active = fields.Boolean(default=True)
     is_open = fields.Boolean(string='Buka', default=True, tracking=True)
+    manager_pin = fields.Char(string='PIN Manajer', default='1234', size=4)
 
     # Relasi
     menu_ids = fields.One2many('restoran.menu', 'cabang_id', string='Menu')

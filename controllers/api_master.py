@@ -31,8 +31,30 @@ class RestoranAPI_Master_3(RestoranBase):
                     'total_order_today': c.total_order_today,
                     'revenue_today': c.revenue_today,
                     'manager': c.manager_id.name if c.manager_id else '',
+                    'manager_pin': c.manager_pin or '1234',
                 })
             return self._json_response({'status': 'success', 'data': data})
+        except Exception as e:
+            return self._json_response({'status': 'error', 'message': str(e)}, 500)
+
+    @http.route('/api/cabang/update_pin', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
+    def update_cabang_pin(self, **kwargs):
+        if request.httprequest.method == 'OPTIONS':
+            return self._cors_preflight()
+        try:
+            data_str = request.httprequest.data.decode('utf-8')
+            data = json.loads(data_str) if data_str else {}
+            cabang_id = data.get('cabang_id')
+            new_pin = data.get('new_pin')
+            if not cabang_id or not new_pin or len(str(new_pin)) != 4:
+                return self._json_response({'status': 'error', 'message': 'ID Cabang dan PIN 4 digit wajib diisi'}, 400)
+            cabang = request.env['restoran.cabang'].sudo().browse(int(cabang_id))
+            if not cabang.exists():
+                return self._json_response({'status': 'error', 'message': 'Cabang tidak ditemukan'}, 404)
+            if not new_pin.isdigit():
+                return self._json_response({'status': 'error', 'message': 'PIN harus terdiri dari 4 angka'}, 400)
+            cabang.write({'manager_pin': str(new_pin)})
+            return self._json_response({'status': 'success', 'message': 'PIN Manajer berhasil diperbarui'})
         except Exception as e:
             return self._json_response({'status': 'error', 'message': str(e)}, 500)
 

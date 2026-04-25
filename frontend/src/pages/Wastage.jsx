@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { api, formatRupiah, formatTime } from '../api';
+import { useToast } from '../hooks/useToast';
 
 export default function Wastage({ cabangId }) {
+    const { toast, ToastContainer } = useToast();
     const [wastages, setWastages] = useState([]);
     const [bahanList, setBahanList] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -46,7 +48,7 @@ export default function Wastage({ cabangId }) {
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (lines.some(l => !l.bahan_id || l.qty <= 0)) {
-            alert("Harap isi semua bahan dan jumlah dengan benar.");
+            toast.warning("Harap isi semua bahan dan jumlah dengan benar.");
             return;
         }
 
@@ -60,13 +62,14 @@ export default function Wastage({ cabangId }) {
             setNotes('');
             fetchWastages();
         } else {
-            alert(res?.message || "Gagal menyimpan data.");
+            toast.error(res?.message || "Gagal menyimpan data.");
         }
         setSubmitting(false);
     };
 
     return (
         <div className="space-y-6 max-w-6xl mx-auto">
+            <ToastContainer />
             <div className="flex justify-between items-center">
                 <div>
                     <h1 className="text-2xl font-black text-gray-900 tracking-tight">STOK RUSAK & EXPIRED</h1>

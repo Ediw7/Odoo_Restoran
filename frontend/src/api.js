@@ -103,6 +103,12 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ name })
     }),
+    updatePin: (cabangId, newPin) => apiFetch('/api/cabang/update_pin', {
+        method: 'POST',
+        body: JSON.stringify({ cabang_id: cabangId, new_pin: newPin })
+    }),
+    createSupplier: (data) => apiFetch('/api/supplier_create', { method: 'POST', body: JSON.stringify(data) }),
+    deleteSupplier: (supplierId) => apiFetch(`/api/supplier_delete/${supplierId}`, { method: 'POST' }),
 
     // Purchasing
     getSuppliers: () => apiFetch('/api/suppliers'),

@@ -26,7 +26,7 @@ export default function App() {
   const [showPinModal, setShowPinModal] = useState(false);
   const [pinInput, setPinInput] = useState('');
   const [pinError, setPinError] = useState(false);
-  const MANAGER_PIN = '1234'; // Ganti PIN di sini
+
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -74,7 +74,6 @@ export default function App() {
           { id: "dashboard", label: "Dashboard Analytics" },
           { id: "report", label: "Laporan Keuangan" },
           { id: "menu", label: "Master Menu & Harga" },
-          { id: "pos", label: "Buka Kasir" }, // Manajer bisa buka kasir jika darurat
           { id: "orders", label: "Riwayat Transaksi" }
         ];
       case 'cashier':
@@ -90,7 +89,7 @@ export default function App() {
         return [
           { id: "inventory", label: "Stok Etalase Makanan" },
           { id: "bahan_baku", label: "Gudang Bahan Mentah" },
-          { id: "purchasing", label: "Pembelian (PO)" },
+          { id: "purchasing", label: "Pembelian & Supplier" },
           { id: "wastage", label: "Barang Rusak / Wastage" },
         ];
       default:
@@ -103,7 +102,7 @@ export default function App() {
   const pageTitles = {
     dashboard: 'Dashboard', pos: 'Kasir', orders: 'Riwayat Transaksi harian', dapur: 'Dapur (Kitchen Display)',
     inventory: 'Stok Etalase', bahan_baku: 'Bahan Baku Mentah', menu: 'Kelola Menu', report: 'Laporan Keuangan',
-    wastage: 'Barang Rusak', purchasing: 'Pembelian (Purchase Order)'
+    wastage: 'Barang Rusak', purchasing: 'Pembelian & Supplier'
   };
 
   if (!isLoggedIn) {
@@ -199,10 +198,9 @@ export default function App() {
 
               {/* PIN Display */}
               <div className="flex justify-center gap-3 mb-1">
-                {[0,1,2,3].map(i => (
-                  <div key={i} className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center transition-all ${
-                    pinInput.length > i ? 'border-orange-400 bg-orange-50' : 'border-gray-200 bg-gray-50'
-                  }`}>
+                {[0, 1, 2, 3].map(i => (
+                  <div key={i} className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center transition-all ${pinInput.length > i ? 'border-orange-400 bg-orange-50' : 'border-gray-200 bg-gray-50'
+                    }`}>
                     {pinInput.length > i && <div className="w-3 h-3 rounded-full bg-orange-500" />}
                   </div>
                 ))}
@@ -214,7 +212,7 @@ export default function App() {
 
               {/* Numpad */}
               <div className="grid grid-cols-3 gap-2">
-                {[1,2,3,4,5,6,7,8,9].map(n => (
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(n => (
                   <button key={n}
                     onClick={() => {
                       if (pinInput.length < 4) {
@@ -222,7 +220,9 @@ export default function App() {
                         setPinInput(newPin);
                         setPinError(false);
                         if (newPin.length === 4) {
-                          if (newPin === MANAGER_PIN) {
+
+                          const currentPin = userData?.manager_pin || '1234';
+                          if (newPin === currentPin) {
                             setShowPinModal(false);
                             setStationMode("admin");
                             setActivePage("dashboard");
@@ -249,7 +249,7 @@ export default function App() {
                       setPinInput(newPin);
                       setPinError(false);
                       if (newPin.length === 4) {
-                        if (newPin === MANAGER_PIN) {
+                        if (newPin === (userData?.manager_pin || '1234')) {
                           setShowPinModal(false);
                           setStationMode("admin");
                           setActivePage("dashboard");
