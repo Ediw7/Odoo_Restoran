@@ -23,6 +23,10 @@ export default function App() {
   const [cabangList, setCabangList] = useState([]);
   const [activeCabangId, setActiveCabangId] = useState("");
   const [stationMode, setStationMode] = useState(null);
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinInput, setPinInput] = useState('');
+  const [pinError, setPinError] = useState(false);
+  const MANAGER_PIN = '1234'; // Ganti PIN di sini
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -163,7 +167,7 @@ export default function App() {
               <div className="mt-4 text-xs font-semibold text-orange-400 group-hover:text-orange-500 transition-colors">Buka Gudang &rarr;</div>
             </button>
 
-            <button onClick={() => { setStationMode("admin"); setActivePage("dashboard"); }}
+            <button onClick={() => { setShowPinModal(true); setPinInput(""); setPinError(false); }}
               className="bg-orange-500 hover:bg-orange-600 border border-orange-500 rounded-2xl p-6 text-left shadow-sm hover:shadow-md transition-all group">
               <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mb-4">
                 <span className="text-xs font-black text-white">MGR</span>
@@ -178,6 +182,96 @@ export default function App() {
             Warung Nusantara ERP &bull; Multi-Cabang
           </div>
         </div>
+
+        {/* PIN Modal */}
+        {showPinModal && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            onClick={() => setShowPinModal(false)}>
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xs p-6 animate-in zoom-in duration-200"
+              onClick={e => e.stopPropagation()}>
+              <div className="text-center mb-5">
+                <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center mx-auto mb-3">
+                  <span className="text-lg font-black text-orange-500">MGR</span>
+                </div>
+                <h3 className="text-lg font-bold text-gray-800">Masukkan PIN Manajer</h3>
+                <p className="text-xs text-gray-400 mt-1">Khusus Owner & Manajer Cabang</p>
+              </div>
+
+              {/* PIN Display */}
+              <div className="flex justify-center gap-3 mb-1">
+                {[0,1,2,3].map(i => (
+                  <div key={i} className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center transition-all ${
+                    pinInput.length > i ? 'border-orange-400 bg-orange-50' : 'border-gray-200 bg-gray-50'
+                  }`}>
+                    {pinInput.length > i && <div className="w-3 h-3 rounded-full bg-orange-500" />}
+                  </div>
+                ))}
+              </div>
+              {pinError && (
+                <p className="text-center text-xs text-red-500 font-bold mb-3 animate-shake">PIN Salah! Coba lagi.</p>
+              )}
+              {!pinError && <div className="mb-3" />}
+
+              {/* Numpad */}
+              <div className="grid grid-cols-3 gap-2">
+                {[1,2,3,4,5,6,7,8,9].map(n => (
+                  <button key={n}
+                    onClick={() => {
+                      if (pinInput.length < 4) {
+                        const newPin = pinInput + n.toString();
+                        setPinInput(newPin);
+                        setPinError(false);
+                        if (newPin.length === 4) {
+                          if (newPin === MANAGER_PIN) {
+                            setShowPinModal(false);
+                            setStationMode("admin");
+                            setActivePage("dashboard");
+                          } else {
+                            setPinError(true);
+                            setTimeout(() => setPinInput(""), 800);
+                          }
+                        }
+                      }
+                    }}
+                    className="h-13 py-3.5 bg-gray-50 hover:bg-orange-50 hover:text-orange-600 border border-gray-100 rounded-xl text-lg font-bold text-gray-700 transition-all active:scale-95">
+                    {n}
+                  </button>
+                ))}
+                <button
+                  onClick={() => { setPinInput(""); setPinError(false); }}
+                  className="h-13 py-3.5 bg-gray-50 hover:bg-red-50 hover:text-red-500 border border-gray-100 rounded-xl text-sm font-bold text-gray-400 transition-all active:scale-95">
+                  Hapus
+                </button>
+                <button
+                  onClick={() => {
+                    if (pinInput.length < 4) {
+                      const newPin = pinInput + "0";
+                      setPinInput(newPin);
+                      setPinError(false);
+                      if (newPin.length === 4) {
+                        if (newPin === MANAGER_PIN) {
+                          setShowPinModal(false);
+                          setStationMode("admin");
+                          setActivePage("dashboard");
+                        } else {
+                          setPinError(true);
+                          setTimeout(() => setPinInput(""), 800);
+                        }
+                      }
+                    }
+                  }}
+                  className="h-13 py-3.5 bg-gray-50 hover:bg-orange-50 hover:text-orange-600 border border-gray-100 rounded-xl text-lg font-bold text-gray-700 transition-all active:scale-95">
+                  0
+                </button>
+                <button
+                  onClick={() => setShowPinModal(false)}
+                  className="h-13 py-3.5 bg-gray-50 hover:bg-gray-100 border border-gray-100 rounded-xl text-sm font-semibold text-gray-400 transition-all active:scale-95">
+                  Batal
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
