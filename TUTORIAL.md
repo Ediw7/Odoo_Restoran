@@ -1,117 +1,142 @@
-# 🍽️ TUTORIAL LENGKAP: Testing Restoran Multi-Cabang (Backend & Frontend)
+# 📖 TUTORIAL LENGKAP — Warung Nusantara ERP
 
-Sistem ini terdiri dari dua bagian yang saling terhubung:
-1. **Odoo Backend** (Database & Manajemen Data)
-2. **Custom Frontend** (Tampilan Kasir POS modern)
-
-Keduanya sudah disatukan dan *running* di server Odoo (`http://localhost:8069`). Berikut adalah panduan lengkap cara melakukan testing dari awal sampai data masuk ke database.
+> Versi Panduan: 1.0 | Terakhir Diperbarui: April 2026
 
 ---
 
-## ========================================
-## BAGIAN A: PERSIAPAN DI ODOO (BACKEND)
-## ========================================
+## 🗺️ GAMBARAN UMUM SISTEM
 
-Sebelum bisa bertransaksi di kasir, kita harus pastikan ada menu yang dijual di database.
+Warung Nusantara ERP adalah sistem manajemen restoran berbasis web yang terdiri dari **4 Stasiun Kerja** yang saling terhubung secara real-time:
 
-### 1. Buka Odoo & Login
-1. Buka browser dan ketik: `http://localhost:8069`
-2. Login menggunakan akun admin kamu (Email: `admin`, Password: `admin`).
-
-### 2. Mulai Buka Modul Restoran
-1. Setelah login, klik icon **Menu Utama** (titik-titik sembilan di pojok kiri atas).
-2. Pilih modul **Restoran**.
-3. Di dalam modul ini, perhatikan menu di atas:
-   - **Operasional**: Berisi daftar Orders.
-   - **Master Data**: Berisi manajemen Cabang, Kategori, dan Menu.
-
-### 3. Buat Master Data Database (PENTING!)
-Agar Kasir tampil dengan sempurna, kamu harus mengisi data-data ini (jika masih kosong):
-
-1. **Buat Kategori Menu**
-   - Klik `Master Data` → `Kategori Menu`.
-   - Klik tombol **New**.
-   - Isi Nama (misal: "Makanan Utama") dan pilih Icon. Save.
-2. **Buat Menu Makanan**
-   - Klik `Master Data` → `Daftar Menu`.
-   - Klik tombol **New**.
-   - Isi Nama (misal: "Nasi Goreng Spesial"), Harga (misal: "25000"), dan pilih Kategori yang barusan dibuat.
-   - Pastikan checkbox **Tersedia (Available)** terceklis aktif (✓). Save.
-3. **Cek Cabang**
-   - Klik `Master Data` → `Daftar Cabang`.
-   - Pastikan ada cabang yang aktif (Status "Buka"). Jika belum ada, buat baru atau edit yang sudah ada.
+| Stasiun | Siapa | Fungsi Utama |
+|---|---|---|
+| 🛒 **Kasir (POS)** | Staf Kasir Depan | Input pesanan, cetak struk, terima bayaran |
+| 👨‍🍳 **Layar Dapur (KDS)** | Koki / Chef | Lihat antrean masak dari kasir secara real-time |
+| 📦 **Gudang/Backoffice** | Staf Gudang | Stok bahan, catatan rusak, beli barang (PO) |
+| 📈 **Manajer/Owner** | Pemilik / Bos | Dashboard omset, laporan laba, kelola menu & harga |
 
 ---
 
-## ========================================
-## BAGIAN B: TESTING KASIR (FRONTEND)
-## ========================================
+## 🔐 LANGKAH 1 — LOGIN (Sekali di Pagi Hari)
 
-Sekarang kita akan bertransaksi layaknya seorang kasir restoran menggunakan tampilan POS modern yang terkoneksi langsung dengan database Odoo di atas.
+**Tujuan:** Mengunci perangkat ke Cabang yang benar. Biasanya dilakukan oleh Kepala Shift atau Manajer di awal hari buka warung.
 
-### 1. Pastikan Mode LIVE Aktif
-Sebelum buka kasir, pastikan aplikasinya berjalan dalam Mode Live (terhubung ke Odoo), bukan Mode Demo.
-File konfigurasi ada di: `/home/edi/custom_addons/restoran_edi/frontend/js/config.js`
-Pastikan kondisinya:
-```javascript
-const CONFIG = {
-    ODOO_URL: '',      // Harus kosong karena satu server dengan Odoo
-    DEMO_MODE: false,  // Harus false agar mengambil data dari database
-};
-```
-*(Jika kamu baru saja mengubahnya, ikuti langkah ini, kalau sudah false, lanjutkan ke no 2)*
+1. Buka browser di perangkat (Tablet/PC/Laptop).
+2. Akses alamat sistem: `http://[alamat-server]/restoran/pos`
+3. Masukkan **Username/Email Odoo** dan **Password** yang sudah didaftarkan.
+4. Klik **"Masuk ke Sistem"**.
 
-### 2. Buka Halaman Kasir (POS)
-1. Buka tab baru di browser (jangan logout Odoo di tab sebelumnya).
-2. Pergi ke link: **`http://localhost:8069/restoran/pos`**
-3. Tampilan POS modern putih bersih akan muncul.
-
-### 3. Tes Transaksi (Order)
-Sekarang, coba pesan makanan:
-1. Pastikan di halaman **Kasir (POS)**, kamu melihat menu "Nasi Goreng Spesial" yang tadi kamu buat di Odoo (tandanya koneksi frontend-backend *SUKSES*).
-2. Kilk menu tersebut beberapa kali untuk menambahkannya ke **Keranjang** (sebelah kanan).
-3. Pilih tipe pesanan di bawah keranjang: **Dine In**, **Take Away**, atau **Delivery**.
-4. *(Opsional)* Isi No. Meja dan Nama Pelanggan.
-5. Pilih metode pembayaran: Tunai / Kartu / QRIS.
-6. Klik tombol besar **Buat Order**.
-7. Muncul notifikasi "Order Berhasil!" beserta Nomor Order (contoh: *JKT-ORD/2026/00001*).
-
-### 4. Tes Manajemen Order & Dapur
-Ini adalah proses pengolahan setelah pesanan masuk:
-1. Klik menu **Daftar Order** di sebelah kiri.
-2. Kamu akan melihat orderan yang barusan kamu buat statusnya adalah **"Draft"**.
-3. Klik tombol **Konfirmasi**. Status berubah menjadi *Dikonfirmasi*.
-4. Pergi ke menu **Kitchen Display**.
-5. Disini koki dapur akan melihat orderanmu. Koki bisa menekan **Mulai Masak** (status jadi *Sedang Disiapkan*) dan **Siap Saji** (status jadi *Siap Saji*).
-6. Kembali ke menu **Daftar Order**, klik orderanmu, lalu selesaikan dengan menekan tombol **Selesai**.
+> ✅ Jika berhasil, Anda akan langsung masuk ke **Portal Kiosk** untuk memilih Stasiun.
 
 ---
 
-## ========================================
-## BAGIAN C: PEMBUKTIAN DATABASE ODOO
-## ========================================
+## 🖥️ LANGKAH 2 — PORTAL KIOSK (Pilih Stasiun Kerja)
 
-Bagian terpenting dari integrasi ini adalah membuktikan bahwa transaksi yang terjadi di aplikasi frontend modern tadi **benar-benar masuk ke database ERP Odoo backend**.
+Setelah login, Anda akan melihat halaman Portal dengan 4 kartu besar. Di bagian atas tertulis nama Cabang yang aktif (contoh: *"Kiosk Mode - Cabang Semarang"*).
 
-### 1. Cek Order Masuk ke Odoo
-1. Kembali ke tab browser **Odoo Backend** (`http://localhost:8069/web`).
-2. Masuk ke modul **Restoran**.
-3. Klik menu **Operasional** → **Orders**.
-4. **BINGO!** 🎉 Kamu akan melihat record pesanan dengan nomor order persis seperti yang dibuat di Kasir POS tadi.
+**Cara menggunakannya:**
+- Klik salah satu kotak sesuai Stasiun yang dibutuhkan.
+- Tidak perlu login ulang — sistem langsung terbuka tanpa hambatan.
 
-### 2. Validasi Detail Transaksi
-1. Klik pada orderan tersebut di Odoo untuk membuka formulir detailnya.
-2. Cek kecocokannya dengan yang ada di POS:
-   - Apakah nama pelanggannya sama?
-   - Apakah No Mejanya benar?
-   - Cek Tab *Item Order*, apakah menu "Nasi Goreng Spesial" masuk beserta harganya?
-   - Cek Jumlah Total tagihannya, apakah sama?
-   - Apakah Statusnya berubah sesuai dengan tombol (Mulai Masak/Selesai) yang ditekan di Web Frontend tadi?
-
-Jika semuanya sama, selamat! Sistem Frontend Modern-mu sudah **100% terintegrasi dengan Database Odoo**. Semua transaksi, rekap pendapatan, dan analitik sudah terpusat di satu sistem yang kuat.
+### Catatan Khusus:
+- **Tombol "Ganti Stasiun"** (di sidebar, pojok kiri bawah): Klik ini untuk kembali ke Portal Kiosk dan berpindah ke stasiun lain tanpa logout.
+- **Tombol "Logout / Ganti Cabang"** (di pojok kanan atas Portal): Klik ini jika perangkat dipindah ke cabang lain atau akhir shift harian.
 
 ---
 
-### *Catatan Penting (Troubleshooting)*
-* Jika tampilan di kasir terasa aneh atau kamu baru saja mengubah kode di file JS/CSS, kamu harus membersihkan cache browser lamamu di halaman POS (`http://localhost:8069/restoran/pos`) dengan cara menekan **Ctrl + Shift + R** atau **Cmd + Shift + R**.
-* Jika muncul pesan *Error Fetching*, pastikan kamu sudah Login ke dalam Odoo Backend di browser/peramban yang sama karena integrasinya sangat bergantung pada keabsahan sesi (Session Cookie) User/Staff yang Login.
+## 🛒 PANDUAN STASIUN KASIR (POS)
+
+### A. Input Pesanan Baru (Walk-in)
+1. Klik menu **"Kasir (POS)"** di sidebar kiri.
+2. **Pilih Tipe Order:**
+   - `Dine In` → untuk pelanggan makan di tempat (isi nomor meja)
+   - `Take Away` → bungkus dibawa pulang
+   - `Delivery` → diantar ke luar
+3. Cari dan klik item menu di bagian kanan layar. Item akan masuk ke keranjang di kiri.
+4. Gunakan tombol `+/-` untuk ubah jumlah, atau klik ikon `🗑️` untuk hapus.
+5. (Opsional) Isi **Nama Pelanggan** dan klik ikon 🔍 untuk cek status Loyalty poin.
+6. Klik **"Kirim ke Dapur"** → Pesanan dikirim ke Layar Dapur. Lanjut terima pelanggan berikutnya.
+
+### B. Proses Pembayaran
+1. Saat pesanan selesai dimasak (status "Siap"), klik banner *"Tagihan Aktif Ditemukan"* untuk mode bayar.
+2. Pilih metode bayar: **Tunai / Kartu / QRIS / Transfer**.
+3. Klik **"Bayar & Selesai"** → Struk otomatis tercetak, stok bahan berkurang otomatis.
+
+### C. Sistem Loyalty (Poin Pelanggan Setia)
+- Setiap 1 pesanan = +10 poin untuk pelanggan terdaftar.
+- Setiap kunjungan ke-10 → Muncul notifikasi hijau berkedip → Klik **"Klaim"** → Otomatis tambah 1 item **Kopi/Es Teh Gratis (Rp 0)** ke keranjang.
+- Jika Manajer memberi hadiah kejutan (VIP Reward), banner kuning emas 👑 akan muncul saat nama pelanggan tersebut diketik di kasir.
+
+---
+
+## 👨‍🍳 PANDUAN STASIUN LAYAR DAPUR (KDS)
+
+1. Setiap pesanan yang dikonfirmasi Kasir akan **muncul otomatis** sebagai kartu di layar Dapur.
+2. Kartu berisi: Nomor/Nama Meja, daftar item yang harus dimasak, dan waktu masuk.
+3. Klik **"Proses"** saat mulai memasak → Status berubah jadi *"Sedang Dimasak"*.
+4. Klik **"Siap"** saat makanan telah siap disajikan → Sistem notifikasi ke Kasir bahwa pesanan bisa diantar.
+5. Layar Dapur otomatis refresh setiap beberapa detik (real-time tanpa perlu reload manual).
+
+---
+
+## 📦 PANDUAN STASIUN GUDANG
+
+### A. Stok Etalase Makanan
+- Menampilkan sisa stok bahan baku mentah yang dipakai untuk memasak menu.
+- Bisa diedit langsung jika ada stok masuk manual yang belum masuk lewat PO.
+
+### B. Pembelian Bahan (Purchase Order / PO)
+1. Klik menu **"Pembelian (PO)"**.
+2. Klik **"+ Buat PO Baru"**.
+3. Pilih Supplier, tambahkan bahan-bahan yang dibeli beserta jumlah dan harga beli per unit.
+4. Klik **"Kirim PO ke Supplier"** → PO tersimpan dengan nomor seri otomatis (cth: `PO/2026/04/0001`).
+5. Saat barang benar-benar datang ke dapur → Klik **"Barang Datang"** pada PO tersebut.
+6. **Stok bahan mentah otomatis bertambah** sesuai jumlah di PO.
+
+### C. Mencatat Wastage (Barang Rusak/Expired)
+1. Klik menu **"Barang Rusak / Wastage"**.
+2. Klik **"+ Catat Barang Rusak"**, isi bahan apa yang rusak/expired, berapa jumlahnya, dan alasannya.
+3. Klik **"Konfirmasi"** → Stok bahan berkurang otomatis dan kerugian tercatat di sistem.
+
+---
+
+## 📈 PANDUAN MANAJER / OWNER
+
+### A. Dashboard Analytics
+- Lihat **Omset Hari Ini / Minggu / Bulan** secara real-time.
+- Grafik batang/garis untuk tren penjualan.
+- Top 5 Menu Terlaris dan analisa metode bayar (Tunai vs QRIS vs Transfer).
+- Tabel **Pelanggan Terfavorit** (Loyalty Leaderboard) — siapa yang paling sering makan di sini.
+
+### B. Beri Hadiah VIP ke Pelanggan Setia
+1. Di Dashboard, scroll ke tabel **"Pelanggan Terfavorit"**.
+2. Arahkan mouse/hover ke baris nama pelanggan → Akan muncul tombol 🎁.
+3. Klik → Muncul popup untuk mengetik hadiah bebas (cth: *"Gratis 1 Porsi Bakso"*).
+4. Klik **"Kirim Kado"** → Hadiah tersimpan diam-diam.
+5. Saat pelanggan tersebut datang dan namanya diketik di Kasir → Banner Emas 👑 akan muncul otomatis!
+
+### C. Laporan Keuangan
+- Klik menu **"Laporan Keuangan"**.
+- Filter berdasarkan Hari / Minggu / Bulan / Tahun.
+- Lihat **Pendapatan Kotor, Total HPP (Harga Pokok Penjualan), dan Laba Bersih** secara akurat.
+
+### D. Kelola Menu & Harga
+- Klik menu **"Master Menu & Harga"**.
+- Tambah, edit, atau nonaktifkan item menu.
+- Set resep bahan (BOM) untuk kalkulasi HPP otomatis.
+
+---
+
+## ⚠️ TROUBLESHOOTING UMUM
+
+| Masalah | Solusi |
+|---|---|
+| Login gagal | Pastikan server Odoo menyala dan URL benar |
+| Menu tidak muncul di Kasir | Cek status menu di "Kelola Menu" - pastikan "Tersedia" = On |
+| Stok tidak berkurang setelah transaksi | Pastikan menu punya Resep BOM yang sudah diisi |
+| Pesanan tidak muncul di Dapur | Pastikan Kasir klik "Kirim ke Dapur" dan cabang sama |
+| PO tidak menambah stok | Klik tombol "Barang Datang" bukan hanya "Konfirmasi PO" |
+
+---
+
+*Untuk pertanyaan teknis dan customisasi tambahan, hubungi tim developer.*

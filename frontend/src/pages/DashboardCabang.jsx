@@ -218,35 +218,91 @@ function TopMenuList({ data }) {
 // CHART: Pelanggan Terfavorit (Loyalty Leaderboard)
 // ============================================
 function TopCustomerList({ data }) {
+    const [selectedCustomer, setSelectedCustomer] = useState(null);
+    const [rewardText, setRewardText] = useState("");
+    const [loading, setLoading] = useState(false);
+
     if (!data || data.length === 0) {
         return <div className="text-sm text-gray-400 text-center py-6">Belum ada pelanggan terdaftar</div>;
     }
 
-    const medals = ['🥈', '🥇', '🥉']; // Sorted 2, 1, 3 for center focus? No, 1st is 0 idx
+    const medals = ['🥈', '🥇', '🥉'];
     const medalIcons = ['🥇', '🥈', '🥉'];
 
+    const handleInjectReward = async () => {
+        if (!rewardText.trim()) return;
+        setLoading(true);
+        const res = await api.injectReward(selectedCustomer.id, rewardText);
+        setLoading(false);
+        if (res?.status === 'success') {
+            alert(`Reward berhasil diberikan kepada ${selectedCustomer.name}!`);
+            setSelectedCustomer(null);
+            setRewardText("");
+        } else {
+            alert(res?.message || "Gagal memberikan reward");
+        }
+    };
+
     return (
-        <div className="space-y-2">
+        <div className="space-y-2 relative">
             {data.map((item, i) => (
-                <div key={i} className="flex items-center justify-between bg-white border border-gray-100 rounded-xl px-4 py-3 hover:shadow-sm transition-all border-l-4" style={{ borderLeftColor: i === 0 ? '#fbbf24' : i === 1 ? '#94a3b8' : i === 2 ? '#d97706' : '#f1f5f9' }}>
+                <div key={i} className="flex items-center justify-between bg-white border border-gray-100 rounded-xl px-4 py-3 hover:shadow-sm transition-all border-l-4 group" style={{ borderLeftColor: i === 0 ? '#fbbf24' : i === 1 ? '#94a3b8' : i === 2 ? '#d97706' : '#f1f5f9' }}>
                     <div className="flex items-center gap-3">
                         <span className="text-xl w-8 text-center">
                             {i < 3 ? medalIcons[i] : <span className="text-xs font-black text-gray-300">#{i + 1}</span>}
                         </span>
                         <div>
                             <p className="text-sm font-bold text-gray-800">{item.name}</p>
-                            <p className="text-[10px] text-gray-400 font-mono">{item.phone}</p>
+                            <p className="text-[10px] text-gray-400 font-mono">{item.phone || '-'} {item.special_reward ? '🎁 (Ada Kado)' : ''}</p>
                         </div>
                     </div>
-                    <div className="text-right">
-                        <p className="text-sm font-black text-orange-600">{item.visit_count}x <span className="text-[10px] text-gray-300 font-medium">Kunjungan</span></p>
-                        <p className="text-[10px] text-gray-400">{item.loyalty_points} Poin</p>
+                    <div className="text-right flex items-center gap-3">
+                        <div>
+                            <p className="text-sm font-black text-orange-600">{item.visit_count}x <span className="text-[10px] text-gray-300 font-medium">Kunjungan</span></p>
+                            <p className="text-[10px] text-gray-400">{item.loyalty_points} Poin</p>
+                        </div>
+                        <button
+                            onClick={() => setSelectedCustomer(item)}
+                            title="Beri Apresiasi Kado"
+                            className="bg-gray-50 hover:bg-orange-50 cursor-pointer p-2 rounded-lg text-lg opacity-30 group-hover:opacity-100 transition-all shadow-sm border border-gray-100"
+                        >
+                            🎁
+                        </button>
                     </div>
                 </div>
             ))}
+
+            {/* Modal Beri Kado */}
+            {selectedCustomer && (
+                <div className="fixed inset-0 bg-black/40 z-[300] flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-scale-in">
+                        <div className="flex justify-between items-center mb-4 border-b border-gray-100 pb-3">
+                            <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">🎁 Beri Kado Kejutan</h2>
+                            <button onClick={() => setSelectedCustomer(null)} className="text-gray-400 hover:text-red-500 font-bold">&times;</button>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-4 leading-relaxed">
+                            Beri hadiah spesial untuk <strong className="text-orange-600">{selectedCustomer.name}</strong>. Pelanggan ini tidak tahu sampai dia datang lagi ke kasir!
+                        </p>
+                        <input type="text" value={rewardText} onChange={e => setRewardText(e.target.value)}
+                            placeholder="Cth: Gratis Voucher 50ribu"
+                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-orange-500 transition-colors mb-4" />
+
+                        <div className="flex gap-2">
+                            <button onClick={() => setRewardText("Gratis Es Teh Manis")} className="bg-blue-50 text-blue-600 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer">Es Teh</button>
+                            <button onClick={() => setRewardText("Gratis 1 Lauk Pendamping")} className="bg-amber-50 text-amber-600 px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer">Gorengan</button>
+                        </div>
+
+                        <button onClick={handleInjectReward} disabled={loading || !rewardText.trim()}
+                            className="w-full py-3 mt-6 bg-orange-500 text-white rounded-xl font-bold text-sm hover:bg-orange-600 transition-all disabled:opacity-50 tracking-wider">
+                            {loading ? "Menyuntikkan Kado..." : "KIRIM KADO SEKARANG"}
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
 
 // ============================================
 // Detail Order Modal

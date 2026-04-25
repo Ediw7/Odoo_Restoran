@@ -95,6 +95,30 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ name })
     }),
+    injectReward: (customerId, rewardText) => apiFetch('/api/customer_inject_reward', {
+        method: 'POST',
+        body: JSON.stringify({ customer_id: customerId, reward_text: rewardText })
+    }),
+    claimSpecialReward: (name) => apiFetch('/api/customer_claim_special', {
+        method: 'POST',
+        body: JSON.stringify({ name })
+    }),
+
+    // Purchasing
+    getSuppliers: () => apiFetch('/api/suppliers'),
+    getPurchases: (cabangId, limit = 20, offset = 0) => {
+        let url = `/api/purchases?limit=${limit}&offset=${offset}`;
+        if (cabangId) url += `&cabang_id=${cabangId}`;
+        return apiFetch(url);
+    },
+    createPurchase: (cabangId, supplierId, lines, note) => apiFetch('/api/purchase_create', {
+        method: 'POST',
+        body: JSON.stringify({ cabang_id: cabangId, supplier_id: supplierId, lines, note })
+    }),
+    receivePurchase: (purchaseId) => apiFetch('/api/purchase_receive', {
+        method: 'POST',
+        body: JSON.stringify({ purchase_id: purchaseId })
+    }),
 };
 
 export const formatRupiah = (number) => {

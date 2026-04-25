@@ -12,6 +12,7 @@ import BahanBaku from "./pages/BahanBaku";
 import Report from "./pages/Report";
 import Wastage from "./pages/Wastage";
 import Dapur from "./pages/Dapur";
+import Purchasing from "./pages/Purchasing";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -21,6 +22,7 @@ export default function App() {
   const [time, setTime] = useState("--:--:--");
   const [cabangList, setCabangList] = useState([]);
   const [activeCabangId, setActiveCabangId] = useState("");
+  const [stationMode, setStationMode] = useState(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -58,37 +60,130 @@ export default function App() {
     setIsLoggedIn(false);
     setUserData(null);
     setActiveCabangId("");
+    setStationMode(null);
   };
 
-  const navItems = userData?.role === 'admin'
-    ? [
-      { id: "dashboard", label: "Dashboard" },
-      { id: "menu", label: "Kelola Menu" }
-    ]
-    : [
-      { id: "dashboard", label: "Dashboard" },
-      { id: "pos", label: "Kasir" },
-      { id: "dapur", label: "Dapur / Kitchen" },
-      { id: "orders", label: "Riwayat Transaksi" },
-      { id: "inventory", label: "Stok Etalase" },
-      { id: "bahan_baku", label: "Gudang Bahan" },
-      { id: "wastage", label: "Barang Rusak" },
-      { id: "report", label: "Laporan" },
-    ];
+  const getNavItems = (role) => {
+    switch (role) {
+      case 'admin':
+        return [
+          { id: "dashboard", label: "Dashboard Analytics" },
+          { id: "report", label: "Laporan Keuangan" },
+          { id: "menu", label: "Master Menu & Harga" },
+          { id: "pos", label: "Buka Kasir" }, // Manajer bisa buka kasir jika darurat
+          { id: "orders", label: "Riwayat Transaksi" }
+        ];
+      case 'cashier':
+        return [
+          { id: "pos", label: "Kasir (POS)" },
+          { id: "orders", label: "Riwayat Transaksi" },
+        ];
+      case 'kitchen':
+        return [
+          { id: "dapur", label: "Layar Dapur (KDS)" },
+        ];
+      case 'warehouse':
+        return [
+          { id: "inventory", label: "Stok Etalase Makanan" },
+          { id: "bahan_baku", label: "Gudang Bahan Mentah" },
+          { id: "purchasing", label: "Pembelian (PO)" },
+          { id: "wastage", label: "Barang Rusak / Wastage" },
+        ];
+      default:
+        return [];
+    }
+  };
+
+  const navItems = getNavItems(userData?.role);
 
   const pageTitles = {
     dashboard: 'Dashboard', pos: 'Kasir', orders: 'Riwayat Transaksi harian', dapur: 'Dapur (Kitchen Display)',
     inventory: 'Stok Etalase', bahan_baku: 'Bahan Baku Mentah', menu: 'Kelola Menu', report: 'Laporan Keuangan',
-    wastage: 'Barang Rusak'
+    wastage: 'Barang Rusak', purchasing: 'Pembelian (Purchase Order)'
   };
 
   if (!isLoggedIn) {
     return <Login onLoginSuccess={(data) => {
       localStorage.setItem("restoran_user", JSON.stringify(data));
-      setUserData(data); setIsLoggedIn(true);
-      if (data.role === 'cashier') { setActiveCabangId(data.cabang_id); setActivePage("dashboard"); }
+      setUserData(data);
+      setIsLoggedIn(true);
+      setActiveCabangId(data.cabang_id);
+      // Biarkan stationMode = null agar masuk ke Portal Launcher.
     }} />;
   }
+
+  // --- RENDERING LAUNCHER (Jika Belum Pilih Stasiun) ---
+  if (!stationMode) {
+    return (
+      <div className="min-h-screen w-full bg-gray-50 flex items-center justify-center p-6">
+        <div className="w-full max-w-4xl">
+
+          {/* Header */}
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800">Warung Nusantara</h1>
+              <p className="text-sm text-gray-400 mt-0.5">Pilih stasiun kerja — {userData?.cabang_name || "Pusat"}</p>
+            </div>
+            <button onClick={handleLogout}
+              className="text-xs font-semibold text-gray-400 hover:text-red-500 bg-white border border-gray-200 px-4 py-2 rounded-lg transition-colors">
+              Logout / Ganti Cabang
+            </button>
+          </div>
+
+          {/* Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+
+            <button onClick={() => { setStationMode("cashier"); setActivePage("pos"); }}
+              className="bg-white border border-gray-100 rounded-2xl p-6 text-left shadow-sm hover:shadow-md hover:border-orange-200 transition-all group">
+              <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center mb-4">
+                <span className="text-sm font-black text-orange-500">POS</span>
+              </div>
+              <h3 className="text-base font-bold text-gray-800 mb-1">Kasir (POS)</h3>
+              <p className="text-xs text-gray-400 leading-relaxed">Input pesanan, bayar & cetak struk.</p>
+              <div className="mt-4 text-xs font-semibold text-orange-400 group-hover:text-orange-500 transition-colors">Buka Kasir &rarr;</div>
+            </button>
+
+            <button onClick={() => { setStationMode("kitchen"); setActivePage("dapur"); }}
+              className="bg-white border border-gray-100 rounded-2xl p-6 text-left shadow-sm hover:shadow-md hover:border-orange-200 transition-all group">
+              <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center mb-4">
+                <span className="text-sm font-black text-orange-500">KDS</span>
+              </div>
+              <h3 className="text-base font-bold text-gray-800 mb-1">Layar Dapur</h3>
+              <p className="text-xs text-gray-400 leading-relaxed">Antrean dan status masak real-time.</p>
+              <div className="mt-4 text-xs font-semibold text-orange-400 group-hover:text-orange-500 transition-colors">Buka Dapur &rarr;</div>
+            </button>
+
+            <button onClick={() => { setStationMode("warehouse"); setActivePage("inventory"); }}
+              className="bg-white border border-gray-100 rounded-2xl p-6 text-left shadow-sm hover:shadow-md hover:border-orange-200 transition-all group">
+              <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center mb-4">
+                <span className="text-xs font-black text-orange-500">WH</span>
+              </div>
+              <h3 className="text-base font-bold text-gray-800 mb-1">Gudang & Stok</h3>
+              <p className="text-xs text-gray-400 leading-relaxed">PO pembelian, stok bahan & wastage.</p>
+              <div className="mt-4 text-xs font-semibold text-orange-400 group-hover:text-orange-500 transition-colors">Buka Gudang &rarr;</div>
+            </button>
+
+            <button onClick={() => { setStationMode("admin"); setActivePage("dashboard"); }}
+              className="bg-orange-500 hover:bg-orange-600 border border-orange-500 rounded-2xl p-6 text-left shadow-sm hover:shadow-md transition-all group">
+              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mb-4">
+                <span className="text-xs font-black text-white">MGR</span>
+              </div>
+              <h3 className="text-base font-bold text-white mb-1">Manajer / Owner</h3>
+              <p className="text-xs text-orange-100 leading-relaxed">Analytics, omset, laba rugi & master.</p>
+              <div className="mt-4 text-xs font-semibold text-white/80 group-hover:text-white transition-colors">Buka Dashboard &rarr;</div>
+            </button>
+          </div>
+
+          <div className="mt-8 text-center text-[10px] text-gray-300 uppercase tracking-widest font-semibold">
+            Warung Nusantara ERP &bull; Multi-Cabang
+          </div>
+        </div>
+      </div>
+    );
+  }
+  // Override nav items based on chosen station
+
+  const activeNavItems = getNavItems(stationMode);
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-gray-50 text-gray-800">
@@ -115,7 +210,7 @@ export default function App() {
         </div>
 
         <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
-          {navItems.map((item) => (
+          {activeNavItems.map((item) => (
             <button key={item.id}
               onClick={() => { setActivePage(item.id); setSidebarOpen(false); }}
               className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activePage === item.id ? "bg-orange-500 text-white shadow-sm" : "text-gray-500 hover:bg-gray-100"}`}>
@@ -130,9 +225,9 @@ export default function App() {
         <div className="p-4 border-t border-gray-100 flex justify-between items-center">
           <div>
             <div className="text-sm font-semibold text-gray-700">{userData?.name}</div>
-            <div className="text-xs text-gray-400 capitalize">{userData?.role || 'kasir'}</div>
+            <div className="text-xs text-gray-400 capitalize">Mode: {stationMode}</div>
           </div>
-          <button onClick={handleLogout} className="text-sm text-gray-400 hover:text-red-500 transition-colors px-2 py-1 rounded hover:bg-red-50">Keluar</button>
+          <button onClick={() => setStationMode(null)} className="text-sm shadow-sm border border-gray-200 text-gray-500 font-medium transition-colors px-2.5 py-1.5 rounded-lg hover:bg-gray-100">Ganti Stasiun</button>
         </div>
       </aside>
 
@@ -159,6 +254,7 @@ export default function App() {
           {activePage === "menu" && <Menu cabangId={activeCabangId} />}
           {activePage === "report" && <Report cabangId={activeCabangId} />}
           {activePage === "wastage" && <Wastage cabangId={activeCabangId} />}
+          {activePage === "purchasing" && <Purchasing cabangList={cabangList} activeCabangId={activeCabangId} />}
         </div>
       </main>
 

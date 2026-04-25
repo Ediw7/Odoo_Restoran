@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Supplier -->
+    <record id="view_restoran_supplier_tree" model="ir.ui.view">
+        <field name="name">restoran.supplier.tree</field>
+        <field name="model">restoran.supplier</field>
+        <field name="arch" type="xml">
+            <tree string="Suppliers">
+                <field name="name"/>
+                <field name="phone"/>
+                <field name="address"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_restoran_supplier_form" model="ir.ui.view">
+        <field name="name">restoran.supplier.form</field>
+        <field name="model">restoran.supplier</field>
+        <field name="arch" type="xml">
+            <form string="Supplier">
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" default_focus="1" placeholder="Nama Supplier"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <field name="phone"/>
+                        <field name="address"/>
+                        <field name="active"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_restoran_supplier" model="ir.actions.act_window">
+        <field name="name">Supplier</field>
+        <field name="res_model">restoran.supplier</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+
+    <!-- Purchase Order -->
+    <record id="view_restoran_purchase_tree" model="ir.ui.view">
+        <field name="name">restoran.purchase.tree</field>
+        <field name="model">restoran.purchase</field>
+        <field name="arch" type="xml">
+            <tree string="Purchase Orders" decoration-info="state == 'draft'" decoration-warning="state == 'confirmed'" decoration-success="state == 'done'">
+                <field name="name"/>
+                <field name="date_order"/>
+                <field name="supplier_id"/>
+                <field name="cabang_id"/>
+                <field name="total_amount"/>
+                <field name="state" widget="badge"/>
+            </tree>
+        </field>
+    </record>
+
+    <record id="view_restoran_purchase_form" model="ir.ui.view">
+        <field name="name">restoran.purchase.form</field>
+        <field name="model">restoran.purchase</field>
+        <field name="arch" type="xml">
+            <form string="Purchase Order">
+                <header>
+                    <button name="action_confirm" string="Konfirmasi PO" type="object" class="oe_highlight" invisible="state != 'draft'"/>
+                    <button name="action_receive" string="Terima Barang" type="object" class="btn-success" invisible="state != 'confirmed'"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,confirmed,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" readonly="1"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="supplier_id" readonly="state != 'draft'"/>
+                            <field name="cabang_id" readonly="state != 'draft'"/>
+                        </group>
+                        <group>
+                            <field name="date_order" readonly="state != 'draft'"/>
+                            <field name="date_received" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Detail Barang">
+                            <field name="line_ids" readonly="state != 'draft'">
+                                <tree editable="bottom">
+                                    <field name="bahan_id"/>
+                                    <field name="qty"/>
+                                    <field name="uom"/>
+                                    <field name="price_unit"/>
+                                    <field name="subtotal" sum="Total"/>
+                                </tree>
+                            </field>
+                            <group class="oe_subtotal_footer oe_right">
+                                <field name="total_amount" class="oe_subtotal_footer_separator"/>
+                            </group>
+                        </page>
+                        <page string="Catatan">
+                            <field name="note" readonly="state != 'draft'"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_restoran_purchase" model="ir.actions.act_window">
+        <field name="name">Purchase Orders</field>
+        <field name="res_model">restoran.purchase</field>
+        <field name="view_mode">tree,form</field>
+    </record>
+</odoo>

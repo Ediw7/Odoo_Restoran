@@ -115,6 +115,23 @@ export default function POS({ cabangList, activeCabangId }) {
         }
     };
 
+    const handleClaimSpecialReward = async () => {
+        if (!loyalty || !customerName) return;
+        const rewardText = loyalty.special_reward;
+        const res = await api.claimSpecialReward(customerName);
+        if (res?.status === 'success') {
+            const resLoyalty = await api.checkCustomer(customerName);
+            if (resLoyalty?.status === 'success') setLoyalty(resLoyalty.data);
+
+            setRewardClaimed({
+                name: customerName,
+                item: rewardText
+            });
+        } else {
+            alert(res?.message || "Gagal mencairkan hadiah spesial.");
+        }
+    };
+
     const addToCart = (menu) => {
         if (isOutOfStock(menu)) return;
         setCheckoutMode("cart");
@@ -336,6 +353,25 @@ export default function POS({ cabangList, activeCabangId }) {
                                 <div className="mt-1.5 h-1 w-full bg-gray-200 rounded-full overflow-hidden">
                                     <div className="h-full bg-orange-500 rounded-full transition-all duration-1000" style={{ width: `${Math.min(100, (loyalty.visit_count / 10) * 100)}%` }}></div>
                                 </div>
+                            </div>
+                        </div>
+                    )}
+                    {loyalty && loyalty.special_reward && (
+                        <div className="p-3 mt-2 rounded-xl border flex gap-3 animate-in fade-in bg-gradient-to-r from-yellow-100 to-amber-50 border-yellow-200 shadow-sm relative overflow-hidden group">
+                            <div className="absolute -right-4 -top-4 text-5xl opacity-20 transform rotate-12 group-hover:scale-110 transition-transform">🎁</div>
+                            <div className="text-2xl animate-bounce">👑</div>
+                            <div className="flex-1 min-w-0 relative z-10">
+                                <div className="text-[10px] font-black text-amber-600 uppercase tracking-widest leading-none mb-1">VIP ALERT! Hadiah Kejutan</div>
+                                <div className="text-sm font-black text-gray-800 mb-2 leading-tight">"{loyalty.special_reward}"</div>
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleClaimSpecialReward();
+                                    }}
+                                    className="w-full bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-500 hover:to-amber-600 text-white py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest shadow-sm transition-all"
+                                >
+                                    Tandai Telah Diberikan
+                                </button>
                             </div>
                         </div>
                     )}

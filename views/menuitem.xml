@@ -42,6 +42,24 @@
               action="action_restoran_menu_kategori"
               sequence="30"/>
 
+    <!-- Sub Menu: Inventory & Pembelian -->
+    <menuitem id="menu_restoran_inventory"
+              name="Gudang &amp; Pembelian"
+              parent="menu_restoran_root"
+              sequence="15"/>
+
+    <menuitem id="menu_restoran_purchase"
+              name="Purchase Orders"
+              parent="menu_restoran_inventory"
+              action="action_restoran_purchase"
+              sequence="10"/>
+
+    <menuitem id="menu_restoran_supplier"
+              name="Supplier"
+              parent="menu_restoran_inventory"
+              action="action_restoran_supplier"
+              sequence="20"/>
+
     <menuitem id="menu_restoran_bahan"
               name="Bahan Baku"
               parent="menu_restoran_master"

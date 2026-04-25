@@ -12,7 +12,8 @@ class RestoranCustomer(models.Model):
     loyalty_points = fields.Integer(string='Poin Loyalty', default=0)
     
     last_visit = fields.Datetime(string='Kunjungan Terakhir')
-    
+    special_reward = fields.Char(string='Hadiah Spesial (Kejutan)', help="Hadiah kustom yang diberikan admin melalui dashboard")
+
     order_ids = fields.One2many('restoran.order', 'customer_id', string='Riwayat Order')
 
     _sql_constraints = [
