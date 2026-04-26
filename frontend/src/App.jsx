@@ -13,6 +13,7 @@ import Report from "./pages/Report";
 import Wastage from "./pages/Wastage";
 import Dapur from "./pages/Dapur";
 import Purchasing from "./pages/Purchasing";
+import Pelanggan from "./pages/Pelanggan";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -79,6 +80,7 @@ export default function App() {
       case 'cashier':
         return [
           { id: "pos", label: "Kasir (POS)" },
+          { id: "pelanggan", label: "Pelanggan & Loyalty" },
           { id: "orders", label: "Riwayat Transaksi" },
         ];
       case 'kitchen':
@@ -102,7 +104,7 @@ export default function App() {
   const pageTitles = {
     dashboard: 'Dashboard', pos: 'Kasir', orders: 'Riwayat Transaksi harian', dapur: 'Dapur (Kitchen Display)',
     inventory: 'Stok Etalase', bahan_baku: 'Bahan Baku Mentah', menu: 'Kelola Menu', report: 'Laporan Keuangan',
-    wastage: 'Barang Rusak', purchasing: 'Pembelian & Supplier'
+    wastage: 'Barang Rusak', purchasing: 'Pembelian & Supplier', pelanggan: 'Pelanggan & Loyalty'
   };
 
   if (!isLoggedIn) {
@@ -349,6 +351,7 @@ export default function App() {
           {activePage === "report" && <Report cabangId={activeCabangId} />}
           {activePage === "wastage" && <Wastage cabangId={activeCabangId} />}
           {activePage === "purchasing" && <Purchasing cabangList={cabangList} activeCabangId={activeCabangId} />}
+          {activePage === "pelanggan" && <Pelanggan />}
         </div>
       </main>
 

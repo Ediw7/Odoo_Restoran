@@ -21,7 +21,7 @@ class RestoranAPI_Loyalty_15(RestoranBase):
             if not name:
                 return self._json_response({'status': 'error', 'message': 'Name must be provided'}, 400)
             
-            cust = request.env['restoran.customer'].sudo().search([('name', '=', name)], limit=1)
+            cust = request.env['restoran.customer'].sudo().search([('name', 'ilike', name)], limit=1)
             if not cust:
                 return self._json_response({'status': 'not_found', 'message': 'Pelanggan belum terdaftar'})
             
@@ -54,7 +54,9 @@ class RestoranAPI_Loyalty_15(RestoranBase):
                     'name': c.name,
                     'phone': c.phone,
                     'visit_count': c.visit_count,
-                    'loyalty_points': c.loyalty_points
+                    'loyalty_points': c.loyalty_points,
+                    'is_eligible_reward': c.visit_count >= 10,
+                    'special_reward': c.special_reward or '',
                 })
             return self._json_response({'status': 'success', 'data': data})
         except Exception as e:

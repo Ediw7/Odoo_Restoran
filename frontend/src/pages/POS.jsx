@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { api, formatRupiah } from "../api";
+import { useToast } from "../hooks/useToast";
+
+const toUpperCase = (str) => str.toUpperCase();
 
 export default function POS({ cabangList, activeCabangId }) {
     const [menus, setMenus] = useState([]);
@@ -316,7 +319,7 @@ export default function POS({ cabangList, activeCabangId }) {
                         <div className={`col-span-2 ${orderType !== 'dine_in' ? 'col-span-2 w-full' : ''}`}>
                             <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Nama Pelanggan / Loyalty</label>
                             <div className="flex gap-1.5">
-                                <input type="text" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Walk-in"
+                                <input type="text" value={customerName} onChange={e => setCustomerName(toUpperCase(e.target.value))} placeholder="Walk-in"
                                     className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-orange-400" />
                                 <button onClick={async () => {
                                     if (!customerName) return;

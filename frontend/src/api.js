@@ -90,6 +90,7 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ wastage_id: wastageId })
     }),
+    getTopCustomers: (limit = 20) => apiFetch(`/api/top_customers?limit=${limit}`),
     checkCustomer: (name) => apiFetch(`/api/customer_check?name=${encodeURIComponent(name)}`),
     claimReward: (name) => apiFetch('/api/customer_claim', {
         method: 'POST',
