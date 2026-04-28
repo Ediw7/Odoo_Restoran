@@ -180,20 +180,20 @@ export default function POS({ cabangList, activeCabangId }) {
             });
             setActiveOrderForName(null);
             setCustomerName("");
+            toast.success("Pembayaran berhasil diselesaikan!");
         } else {
-            alert("Gagal bayar: " + (res?.message || 'Error'));
+            toast.error("Gagal bayar: " + (res?.message || 'Error'));
         }
     };
 
-    const handleCheckout = async (isPaid = true) => {
+    const handleCheckout = async (isPaid = false) => {
         if (cart.length === 0) return;
-        if (!customerName.trim()) return alert(`Nama Pelanggan wajib diisi sebelum ${isPaid ? 'bayar!' : 'dikirim ke dapur!'}`);
-        if (orderType === 'dine_in' && !tableNumber.trim()) return alert("Nomor Meja wajib diisi untuk pesanan Dine In!");
-        if (isPaid && !paymentMethod) return alert("Pilih metode pembayaran!");
+        if (!customerName.trim()) return toast.warning("Nama Pelanggan wajib diisi sebelum dikirim ke dapur!");
+        if (orderType === 'dine_in' && !tableNumber.trim()) return toast.warning("Nomor Meja wajib diisi untuk pesanan Dine In!");
 
         let targetCabangId = activeCabangId;
         if (!targetCabangId && cabangList.length > 0) targetCabangId = cabangList[0].id;
-        if (!targetCabangId) return alert("Pilih cabang terlebih dahulu.");
+        if (!targetCabangId) return toast.error("Pilih cabang terlebih dahulu.");
 
         const payload = {
             cabang_id: parseInt(targetCabangId),
@@ -207,11 +207,7 @@ export default function POS({ cabangList, activeCabangId }) {
 
         const res = await api.createOrder(payload);
         if (res?.status === 'success') {
-            if (isPaid) {
-                setSuccessOrder(res.data);
-            } else {
-                alert("Berhasil! Pesanan telah dikirim ke dapur.");
-            }
+            toast.success("Pesanan OTW ke Dapur!");
             setCart([]);
             setTableNumber("");
             setCustomerName("");
@@ -219,7 +215,7 @@ export default function POS({ cabangList, activeCabangId }) {
             setLoyalty(null);
             fetchMenus();
         }
-        else alert("Gagal Transaksi: " + (res?.message || 'Error'));
+        else toast.error("Gagal Transaksi: " + (res?.message || 'Error'));
     };
 
     const PaymentOption = ({ id, label, icon }) => (
@@ -484,12 +480,8 @@ export default function POS({ cabangList, activeCabangId }) {
 
                             <div className="flex gap-2">
                                 <button disabled={cart.length === 0 || (!tableNumber.trim() && !customerName.trim())} onClick={() => handleCheckout(false)}
-                                    className="flex-1 py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold text-[11px] shadow-lg shadow-yellow-500/20 transition-all disabled:opacity-40 disabled:grayscale disabled:shadow-none">
+                                    className="w-full py-4 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-black text-sm tracking-widest shadow-xl shadow-orange-500/20 transition-all disabled:opacity-40 disabled:grayscale disabled:shadow-none">
                                     KIRIM DAPUR
-                                </button>
-                                <button disabled={cart.length === 0 || (!tableNumber.trim() && !customerName.trim())} onClick={() => handleCheckout(true)}
-                                    className="flex-1 py-3 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-[11px] shadow-lg shadow-orange-500/20 transition-all disabled:opacity-40 disabled:grayscale disabled:shadow-none">
-                                    BAYAR & SELESAI
                                 </button>
                             </div>
                         </div>
