@@ -35,6 +35,9 @@ class RestoranAPI_Dashboard_7(RestoranBase):
                     'id': c.id,
                     'name': c.name,
                     'is_open': c.is_open,
+                    'total_menu': c.total_menu,
+                    'total_order_today': c.total_order_today,
+                    'revenue_today': c.revenue_today,
                 })
 
             # Filter waktu untuk pesanan
@@ -61,7 +64,9 @@ class RestoranAPI_Dashboard_7(RestoranBase):
 
             dashboard['global'] = {
                 'total_orders': len(all_orders),
+                'total_orders_today': len(all_orders), # for compatibility
                 'total_revenue': sum(all_orders.mapped('total_amount')),
+                'total_revenue_today': sum(all_orders.mapped('total_amount')), # for compatibility
                 'total_menu_available': request.env['restoran.menu'].sudo().search_count([
                     ('available', '=', True)
                 ] + ([('cabang_id', 'in', [False, int(cabang_id)])] if cabang_id else [])),

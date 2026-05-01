@@ -14,7 +14,7 @@ export function useToast() {
 
     const addToast = useCallback((type, text) => {
         const id = Date.now() + Math.random();
-        setToasts(prev => [...prev, { id, type, text }]);
+        setToasts([{ id, type, text }]); // Clear previous and add new one
         setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 3500);
     }, []);
 

@@ -14,6 +14,7 @@ import Wastage from "./pages/Wastage";
 import Dapur from "./pages/Dapur";
 import Purchasing from "./pages/Purchasing";
 import Pelanggan from "./pages/Pelanggan";
+import Cabang from "./pages/Cabang";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -45,6 +46,9 @@ export default function App() {
       if (parsed.role === 'cashier') {
         setActiveCabangId(parsed.cabang_id);
         setActivePage("dashboard");
+      } else if (parsed.role === 'owner' || parsed.role === 'admin') {
+        setActivePage("dashboard");
+        setStationMode("owner");
       }
     }
   }, []);
@@ -70,9 +74,11 @@ export default function App() {
 
   const getNavItems = (role) => {
     switch (role) {
+      case 'owner':
       case 'admin':
         return [
-          { id: "dashboard", label: "Dashboard Analytics" },
+          { id: "dashboard", label: "Dashboard Global" },
+          { id: "cabang", label: "Manajemen Cabang" },
           { id: "report", label: "Laporan Keuangan" },
           { id: "menu", label: "Master Menu & Harga" },
           { id: "orders", label: "Riwayat Transaksi" }
@@ -104,7 +110,7 @@ export default function App() {
   const pageTitles = {
     dashboard: 'Dashboard', pos: 'Kasir', orders: 'Riwayat Transaksi harian', dapur: 'Dapur (Kitchen Display)',
     inventory: 'Stok Etalase', bahan_baku: 'Bahan Baku Mentah', menu: 'Kelola Menu', report: 'Laporan Keuangan',
-    wastage: 'Barang Rusak', purchasing: 'Pembelian & Supplier', pelanggan: 'Pelanggan & Loyalty'
+    wastage: 'Barang Rusak', purchasing: 'Pembelian & Supplier', pelanggan: 'Pelanggan & Loyalty', cabang: 'Manajemen Cabang'
   };
 
   if (!isLoggedIn) {
@@ -113,12 +119,15 @@ export default function App() {
       setUserData(data);
       setIsLoggedIn(true);
       setActiveCabangId(data.cabang_id);
-      // Biarkan stationMode = null agar masuk ke Portal Launcher.
+      if (data.role === 'owner' || data.role === 'admin') {
+          setStationMode('owner');
+          setActivePage('dashboard');
+      }
     }} />;
   }
 
-  // --- RENDERING LAUNCHER (Jika Belum Pilih Stasiun) ---
-  if (!stationMode) {
+  // --- RENDERING LAUNCHER (Jika Belum Pilih Stasiun & Bukan Owner/Admin) ---
+  if (!stationMode && userData?.role !== 'owner' && userData?.role !== 'admin') {
     return (
       <div className="min-h-screen w-full bg-gray-50 flex items-center justify-center p-6">
         <div className="w-full max-w-4xl">
@@ -323,7 +332,14 @@ export default function App() {
             <div className="text-sm font-semibold text-gray-700">{userData?.name}</div>
             <div className="text-xs text-gray-400 capitalize">Mode: {stationMode}</div>
           </div>
-          <button onClick={() => setStationMode(null)} className="text-sm shadow-sm border border-gray-200 text-gray-500 font-medium transition-colors px-2.5 py-1.5 rounded-lg hover:bg-gray-100">Ganti Stasiun</button>
+          { (userData?.role === 'owner' || userData?.role === 'admin') ? (
+            <button onClick={handleLogout} className="text-sm shadow-sm border border-red-200 text-red-500 font-medium transition-colors px-3 py-1.5 rounded-lg hover:bg-red-50">Logout</button>
+          ) : (
+            <div className="flex gap-1.5">
+               <button onClick={() => setStationMode(null)} className="text-sm shadow-sm border border-gray-200 text-gray-500 font-medium transition-colors px-2.5 py-1.5 rounded-lg hover:bg-gray-100" title="Ganti Stasiun">🏢</button>
+               <button onClick={handleLogout} className="text-sm shadow-sm border border-red-200 text-red-500 font-medium transition-colors px-2.5 py-1.5 rounded-lg hover:bg-red-50" title="Logout">🚪</button>
+            </div>
+          )}
         </div>
       </aside>
 
@@ -340,8 +356,9 @@ export default function App() {
         </header>
 
         <div className="flex-1 overflow-y-auto p-5">
-          {activePage === "dashboard" && userData?.role === 'admin' && <DashboardAdmin cabangId={activeCabangId} />}
+          {activePage === "dashboard" && (userData?.role === 'owner' || userData?.role === 'admin') && <DashboardAdmin cabangId={activeCabangId} />}
           {activePage === "dashboard" && userData?.role === 'cashier' && <DashboardCabang cabangId={activeCabangId} />}
+          {activePage === "cabang" && <Cabang />}
           {activePage === "pos" && <POS cabangList={cabangList} activeCabangId={activeCabangId} />}
           {activePage === "dapur" && <Dapur cabangId={activeCabangId} />}
           {activePage === "orders" && <Orders cabangId={activeCabangId} />}

@@ -58,6 +58,39 @@ class RestoranAPI_Master_3(RestoranBase):
         except Exception as e:
             return self._json_response({'status': 'error', 'message': str(e)}, 500)
 
+    @http.route('/api/cabang_delete', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
+    def delete_cabang(self, **kwargs):
+        if request.httprequest.method == 'OPTIONS': return self._cors_preflight()
+        try:
+            data_str = request.httprequest.data.decode('utf-8')
+            data = json.loads(data_str) if data_str else {}
+            if 'params' in data: data = data['params']
+            cabang_id = data.get('cabang_id')
+            if not cabang_id:
+                return self._json_response({'status': 'error', 'message': 'ID Cabang wajib diisi'}, 400)
+            cabang = request.env['restoran.cabang'].sudo().browse(int(cabang_id))
+            if not cabang.exists():
+                return self._json_response({'status': 'error', 'message': 'Cabang tidak ditemukan'}, 404)
+            cabang.unlink()
+            return self._json_response({'status': 'success', 'message': 'Cabang berhasil dihapus'})
+        except Exception as e:
+            return self._json_response({'status': 'error', 'message': str(e)}, 500)
+
+    @http.route('/api/cabang_create', type='http', auth='public', methods=['POST', 'OPTIONS'], csrf=False)
+    def create_cabang(self, **kwargs):
+        if request.httprequest.method == 'OPTIONS': return self._cors_preflight()
+        try:
+            data_str = request.httprequest.data.decode('utf-8')
+            data = json.loads(data_str) if data_str else {}
+            if 'params' in data: data = data['params']
+            name = data.get('name')
+            if not name:
+                return self._json_response({'status': 'error', 'message': 'Nama cabang wajib diisi'}, 400)
+            cabang = request.env['restoran.cabang'].sudo().create({'name': name})
+            return self._json_response({'status': 'success', 'message': 'Cabang berhasil dibuat', 'data': {'id': cabang.id, 'name': cabang.name}})
+        except Exception as e:
+            return self._json_response({'status': 'error', 'message': str(e)}, 500)
+
     @http.route('/api/cabang/<int:cabang_id>', type='http', auth='public', methods=['GET'], csrf=False)
     def get_cabang_detail(self, cabang_id, **kwargs):
         try:

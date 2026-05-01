@@ -28,6 +28,14 @@ export const api = {
         return apiFetch(url);
     },
     getCabang: () => apiFetch('/api/cabang'),
+    createCabang: (data) => apiFetch('/api/cabang_create', {
+        method: 'POST',
+        body: JSON.stringify(data)
+    }),
+    deleteCabang: (cabangId) => apiFetch('/api/cabang_delete', {
+        method: 'POST',
+        body: JSON.stringify({ cabang_id: cabangId })
+    }),
     manageCabang: (payload) => apiFetch('/api/cabang_action', {
         method: 'POST',
         body: JSON.stringify(payload)
@@ -126,12 +134,19 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ purchase_id: purchaseId })
     }),
+    // User Management
+    getUsers: () => apiFetch('/api/users'),
+    manageUser: (payload) => apiFetch('/api/users/action', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+    }),
 };
 
 export const formatRupiah = (number) => {
+    const val = parseFloat(number) || 0;
     return new Intl.NumberFormat('id-ID', {
         style: 'currency', currency: 'IDR', minimumFractionDigits: 0
-    }).format(number);
+    }).format(val);
 };
 
 export const formatTime = (dateStr) => {

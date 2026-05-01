@@ -180,6 +180,7 @@ class ResUsers(models.Model):
     cabang_id = fields.Many2one('restoran.cabang', string='Cabang Restoran (Untuk Kasir)')
     
     restoran_role = fields.Selection([
-        ('admin', 'Administrator (Bos)'),
+        ('owner', 'Owner / Super Admin'),
+        ('admin', 'Manager Cabang'),
         ('cashier', 'Kasir Cabang')
     ], string='Role Restoran', default='cashier')

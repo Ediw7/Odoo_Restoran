@@ -5,6 +5,7 @@ import { useToast } from "../hooks/useToast";
 const toUpperCase = (str) => str.toUpperCase();
 
 export default function POS({ cabangList, activeCabangId }) {
+    const { toast, ToastContainer } = useToast();
     const [menus, setMenus] = useState([]);
     const [kategoris, setKategoris] = useState([]);
     const [activeKategori, setActiveKategori] = useState("all");
@@ -21,6 +22,7 @@ export default function POS({ cabangList, activeCabangId }) {
     const [rewardClaimed, setRewardClaimed] = useState(null);
     const [activeOrderForName, setActiveOrderForName] = useState(null);
     const [checkoutMode, setCheckoutMode] = useState("cart"); // "cart" or "pay_active"
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => { fetchKategoris(); }, []);
     useEffect(() => { fetchMenus(); }, [activeKategori, activeCabangId]);
@@ -170,7 +172,9 @@ export default function POS({ cabangList, activeCabangId }) {
         if (!orderToPay) return;
         if (!paymentMethod) return alert("Pilih metode pembayaran!");
 
+        setIsSubmitting(true);
         const res = await api.updateOrderStatus(orderToPay.id, 'done', { payment_method: paymentMethod });
+        setIsSubmitting(false);
         if (res?.status === 'success') {
             setSuccessOrder({
                 id: orderToPay.id,
@@ -180,7 +184,6 @@ export default function POS({ cabangList, activeCabangId }) {
             });
             setActiveOrderForName(null);
             setCustomerName("");
-            toast.success("Pembayaran berhasil diselesaikan!");
         } else {
             toast.error("Gagal bayar: " + (res?.message || 'Error'));
         }
@@ -205,7 +208,9 @@ export default function POS({ cabangList, activeCabangId }) {
             lines: cart.map(c => ({ menu_id: c.menu.id, qty: c.qty }))
         };
 
+        setIsSubmitting(true);
         const res = await api.createOrder(payload);
+        setIsSubmitting(false);
         if (res?.status === 'success') {
             toast.success("Pesanan OTW ke Dapur!");
             setCart([]);
@@ -227,7 +232,8 @@ export default function POS({ cabangList, activeCabangId }) {
     );
 
     return (
-        <div className="flex flex-col lg:flex-row gap-5 h-[calc(100vh-6.5rem)] animate-fade-in w-full">
+        <div className="flex flex-col lg:flex-row gap-5 h-[calc(100vh-6.5rem)] animate-fade-in w-full relative">
+            <ToastContainer />
             {/* Menu Area */}
             <div className="flex-1 flex flex-col min-w-0">
                 <div className="mb-4 space-y-3 shrink-0">
@@ -390,7 +396,7 @@ export default function POS({ cabangList, activeCabangId }) {
                 )}
 
                 {activeOrderForName && checkoutMode === "pay_active" ? (
-                    <div className="flex-1 flex flex-col p-3 animate-in fade-in relative z-10 bg-white">
+                    <div className="flex-1 flex flex-col min-h-0 p-3 animate-in fade-in relative z-10 bg-white">
                         <div className="mb-3 px-3 py-2 bg-orange-50/50 rounded-lg border border-orange-100/50 flex justify-between items-center">
                             <div>
                                 <div className="text-[10px] font-bold text-orange-400 uppercase">Tagihan Ditemukan</div>
@@ -424,15 +430,15 @@ export default function POS({ cabangList, activeCabangId }) {
                                 <PaymentOption id="qris" label="QRIS" icon="📱" />
                                 <PaymentOption id="card" label="Kartu" icon="💳" />
                             </div>
-                            <button onClick={() => handlePayTagihan(activeOrderForName)}
-                                className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold shadow-sm transition-all text-sm uppercase">
-                                BAYAR SEKARANG
+                            <button onClick={() => handlePayTagihan(activeOrderForName)} disabled={isSubmitting}
+                                className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold shadow-sm transition-all text-sm uppercase disabled:opacity-50">
+                                {isSubmitting ? "MEMPROSES..." : "BAYAR SEKARANG"}
                             </button>
                         </div>
                     </div>
                 ) : (
                     <>
-                        <div className="flex-1 overflow-y-auto p-3">
+                        <div className="flex-1 overflow-y-auto min-h-0 p-3">
                             {cart.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-gray-300">
                                     <span className="text-3xl mb-2">🛒</span>
@@ -479,9 +485,9 @@ export default function POS({ cabangList, activeCabangId }) {
                             </div>
 
                             <div className="flex gap-2">
-                                <button disabled={cart.length === 0 || (!tableNumber.trim() && !customerName.trim())} onClick={() => handleCheckout(false)}
-                                    className="w-full py-4 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-black text-sm tracking-widest shadow-xl shadow-orange-500/20 transition-all disabled:opacity-40 disabled:grayscale disabled:shadow-none">
-                                    KIRIM DAPUR
+                                <button disabled={isSubmitting || cart.length === 0 || (!tableNumber.trim() && !customerName.trim())} onClick={() => handleCheckout(false)}
+                                    className="w-full py-4 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-black text-sm tracking-widest shadow-xl shadow-orange-500/20 transition-all disabled:opacity-40 disabled:grayscale disabled:shadow-none uppercase">
+                                    {isSubmitting ? "MENGIRIM..." : "KIRIM DAPUR"}
                                 </button>
                             </div>
                         </div>

@@ -6,3 +6,4 @@ from . import api_auth
 from . import api_master
 from . import api_dashboard
 from . import api_purchasing
+from . import api_user
