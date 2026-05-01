@@ -86,9 +86,21 @@ class RestoranAPI_Master_3(RestoranBase):
             name = data.get('name')
             if not name:
                 return self._json_response({'status': 'error', 'message': 'Nama cabang wajib diisi'}, 400)
-            cabang = request.env['restoran.cabang'].sudo().create({'name': name})
-            return self._json_response({'status': 'success', 'message': 'Cabang berhasil dibuat', 'data': {'id': cabang.id, 'name': cabang.name}})
+            
+            # Generate code based on name (uppercase first 3 letters + random or count)
+            clean_name = ''.join(e for e in name if e.isalnum()).upper()
+            code = clean_name[:3]
+            existing_count = request.env['restoran.cabang'].sudo().search_count([('code', 'ilike', code)])
+            if existing_count > 0:
+                code = f"{code}{existing_count + 1}"
+            
+            cabang = request.env['restoran.cabang'].sudo().create({
+                'name': name,
+                'code': code
+            })
+            return self._json_response({'status': 'success', 'message': 'Cabang berhasil dibuat', 'data': {'id': cabang.id, 'name': cabang.name, 'code': cabang.code}})
         except Exception as e:
+            _logger.error(f"Create Cabang Error: {e}")
             return self._json_response({'status': 'error', 'message': str(e)}, 500)
 
     @http.route('/api/cabang/<int:cabang_id>', type='http', auth='public', methods=['GET'], csrf=False)

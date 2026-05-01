@@ -299,21 +299,6 @@ export default function App() {
           <p className="text-gray-400 text-xs mt-0.5">POS System</p>
         </div>
 
-        <div className="p-3 border-b border-gray-100">
-          <label className="block text-xs font-medium text-gray-400 mb-1.5 px-1">Cabang</label>
-          {userData?.role === 'admin' ? (
-            <select value={activeCabangId} onChange={(e) => setActiveCabangId(e.target.value)}
-              className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 outline-none cursor-pointer">
-              <option value="">Semua Cabang</option>
-              {cabangList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-            </select>
-          ) : (
-            <div className="w-full bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium text-gray-600">
-              {userData?.cabang_name || '-'}
-            </div>
-          )}
-        </div>
-
         <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
           {activeNavItems.map((item) => (
             <button key={item.id}

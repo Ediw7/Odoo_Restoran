@@ -32,15 +32,32 @@ export default function Cabang() {
 
     const handleCreateCabang = async (e) => {
         e.preventDefault();
-        if (!newCabang.trim()) return;
+        const branchName = newCabang.trim();
+        if (!branchName) return;
+        
         setIsSubmitting(true);
-        const res = await api.createCabang({ name: newCabang });
-        setIsSubmitting(false);
-        if (res?.status === "success") {
-            toast.success(`Cabang "${newCabang}" berhasil ditambahkan!`);
-            setNewCabang("");
-            fetchData();
-        } else toast.error(res?.message || "Gagal menambah cabang");
+        try {
+            const res = await api.createCabang({ name: branchName });
+            if (res?.status === "success") {
+                toast.success(`Cabang "${branchName}" berhasil ditambahkan!`);
+                const createdCabang = res.data;
+                setNewCabang("");
+                
+                // Open user form immediately for the new branch
+                setSelectedCabang(createdCabang);
+                handleOpenUserForm(null);
+                
+                // Refresh list in background
+                fetchData();
+            } else {
+                toast.error(res?.message || "Gagal menambah cabang");
+            }
+        } catch (err) {
+            toast.error("Terjadi kesalahan sistem");
+            console.error(err);
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleDeleteCabang = async (id, name) => {
@@ -101,6 +118,49 @@ export default function Cabang() {
         }
     };
 
+    const [searchTerm, setSearchTerm] = useState("");
+    const [showCreateModal, setShowCreateModal] = useState(false);
+    const [createFormData, setCreateFormData] = useState({
+        branchName: '', userName: '', login: '', password: ''
+    });
+
+    const filteredCabangs = cabangs.filter(c => 
+        c.name.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    const handleUnifiedCreate = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        try {
+            // 1. Create Branch
+            const resC = await api.createCabang({ name: createFormData.branchName });
+            if (resC.status !== 'success') throw new Error(resC.message);
+            
+            const newBranchId = resC.data.id;
+            
+            // 2. Create User for that Branch
+            const resU = await api.manageUser({
+                action: 'create',
+                cabang_id: newBranchId,
+                name: createFormData.userName,
+                login: createFormData.login,
+                password: createFormData.password,
+                role: 'admin' // Default to Manager for new branch
+            });
+            
+            if (resU.status !== 'success') throw new Error(resU.message);
+            
+            toast.success("Cabang & Akun berhasil dibuat!");
+            setShowCreateModal(false);
+            setCreateFormData({ branchName: '', userName: '', login: '', password: '' });
+            fetchData();
+        } catch (err) {
+            toast.error(err.message || "Gagal membuat data");
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
     return (
         <div className="animate-fade-in max-w-4xl mx-auto pb-20">
             <ToastContainer />
@@ -111,89 +171,133 @@ export default function Cabang() {
                     <h1 className="text-2xl font-semibold text-gray-800 tracking-tight">Manajemen Cabang</h1>
                     <p className="text-sm text-gray-500 mt-0.5">Kelola outlet dan akses login karyawan.</p>
                 </div>
-                <form onSubmit={handleCreateCabang} className="flex gap-2">
-                    <input type="text" value={newCabang} onChange={(e) => setNewCabang(e.target.value)}
-                        placeholder="Nama cabang baru..." className="px-4 py-2 bg-white border border-gray-200 rounded-xl outline-none focus:border-orange-500 transition-all text-sm font-medium w-64" required />
-                    <button type="submit" disabled={isSubmitting || !newCabang.trim()} className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-xl font-bold text-sm transition-all shadow-sm">
-                        Tambah
+                <div className="flex gap-3">
+                    <div className="relative">
+                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                        <input 
+                            type="text" 
+                            value={searchTerm} 
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            placeholder="Cari cabang..." 
+                            className="pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl outline-none focus:border-orange-500 transition-all text-sm font-medium w-64 shadow-sm" 
+                        />
+                    </div>
+                    <button 
+                        onClick={() => setShowCreateModal(true)}
+                        className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-xl font-bold text-sm transition-all shadow-lg shadow-orange-500/20 whitespace-nowrap"
+                    >
+                        + Tambah Cabang
                     </button>
-                </form>
+                </div>
             </div>
 
             <div className="space-y-3">
                 {loading ? (
                     <div className="py-20 text-center text-gray-400 text-sm font-medium">Memuat data...</div>
-                ) : cabangs.map((c) => {
+                ) : filteredCabangs.map((c) => {
                     const branchUser = users.find(u => u.cabang_id === c.id);
                     return (
-                        <div key={c.id} className="bg-white border border-gray-100 rounded-2xl p-6 hover:border-gray-200 transition-all flex items-center justify-between group">
+                        <div key={c.id} className="bg-white border border-gray-100 rounded-2xl p-6 hover:border-gray-200 transition-all flex items-center justify-between group shadow-sm">
                             <div className="flex flex-col">
                                 <h4 className="font-bold text-gray-800 text-lg">{c.name}</h4>
                                 <div className="mt-1 flex items-center gap-3">
                                     <span className="text-xs font-medium text-gray-400">
-                                        ID Login: <span className="text-gray-600">{branchUser ? branchUser.login : '- belum diatur -'}</span>
+                                        ID Login: <span className="text-gray-600 font-semibold">{branchUser ? branchUser.login : '- belum diatur -'}</span>
                                     </span>
                                 </div>
                             </div>
 
-                            <div className="flex gap-10 items-center">
-                                <div className="hidden md:flex gap-8 border-r border-gray-100 pr-8">
-                                    <div className="text-right">
-                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Order</p>
-                                        <p className="font-semibold text-gray-700">{c.total_order_today}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider mb-0.5">Omzet</p>
-                                        <p className="font-semibold text-emerald-600">{formatRupiah(c.revenue_today)}</p>
-                                    </div>
-                                </div>
-                                <div className="flex gap-2">
-                                    <button 
-                                        onClick={() => {
-                                            setSelectedCabang(c);
-                                            handleOpenUserForm(branchUser);
-                                        }} 
-                                        className="px-4 py-2 flex items-center gap-2 rounded-xl border border-gray-100 text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all text-xs font-bold"
-                                    >
-                                        <span>✏️</span>
-                                        <span>Edit Akses</span>
-                                    </button>
-                                    <button onClick={() => handleDeleteCabang(c.id, c.name)} className="w-9 h-9 flex items-center justify-center rounded-xl text-gray-300 hover:text-red-500 transition-all" title="Hapus">
-                                        <span className="text-lg">🗑️</span>
-                                    </button>
-                                </div>
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={() => {
+                                        setSelectedCabang(c);
+                                        handleOpenUserForm(branchUser);
+                                    }} 
+                                    className="px-5 py-2.5 flex items-center gap-2 rounded-xl border border-gray-100 text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all text-xs font-bold shadow-sm"
+                                >
+                                    <span>✏️</span>
+                                    <span>Edit Akses</span>
+                                </button>
+                                <button onClick={() => handleDeleteCabang(c.id, c.name)} className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-300 hover:text-red-500 transition-all" title="Hapus">
+                                    <span className="text-lg">🗑️</span>
+                                </button>
                             </div>
                         </div>
                     );
                 })}
+                {filteredCabangs.length === 0 && !loading && (
+                    <div className="py-20 text-center text-gray-400 text-sm font-medium italic italic">Cabang tidak ditemukan</div>
+                )}
             </div>
+
+            {/* Modal Tambah Cabang Baru */}
+            {showCreateModal && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-white rounded-[2rem] w-full max-w-md shadow-2xl p-10 border border-gray-100 animate-scale-in">
+                        <div className="mb-8 text-center">
+                            <h2 className="text-2xl font-bold text-gray-800">Tambah Cabang Baru</h2>
+                            <p className="text-sm text-gray-400 mt-1">Buat unit bisnis & akun pengelola sekaligus.</p>
+                        </div>
+                        
+                        <form onSubmit={handleUnifiedCreate} className="space-y-4">
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Nama Cabang</label>
+                                <input type="text" value={createFormData.branchName} onChange={e => setCreateFormData({...createFormData, branchName: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-orange-500 text-sm font-medium" placeholder="Contoh: Cabang Jakarta" required />
+                            </div>
+                            <div className="pt-4 border-t border-gray-100 space-y-4">
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-orange-400 uppercase tracking-widest ml-1">Nama Karyawan/Kasir</label>
+                                    <input type="text" value={createFormData.userName} onChange={e => setCreateFormData({...createFormData, userName: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-orange-500 text-sm font-medium" placeholder="Nama lengkap" required />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-orange-400 uppercase tracking-widest ml-1">ID Login (Email/Username)</label>
+                                    <input type="text" value={createFormData.login} onChange={e => setCreateFormData({...createFormData, login: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-orange-500 text-sm font-medium" placeholder="login@email.com" required />
+                                </div>
+                                <div className="space-y-1.5">
+                                    <label className="text-[10px] font-bold text-orange-400 uppercase tracking-widest ml-1">Password</label>
+                                    <input type="password" value={createFormData.password} onChange={e => setCreateFormData({...createFormData, password: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-orange-500 text-sm font-medium" placeholder="••••••••" required />
+                                </div>
+                            </div>
+                            
+                            <div className="flex gap-3 pt-6">
+                                <button type="button" onClick={() => setShowCreateModal(false)} className="flex-1 py-3.5 bg-gray-50 text-gray-500 font-bold rounded-xl text-sm transition-colors">Batal</button>
+                                <button type="submit" disabled={isSubmitting} className="flex-2 py-3.5 bg-orange-500 text-white font-bold rounded-xl text-sm shadow-xl shadow-orange-500/20 hover:bg-orange-600 transition-all px-8">
+                                    {isSubmitting ? 'Memproses...' : 'Simpan & Buat Cabang'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
 
             {/* Modal Edit Akses */}
             {showUserForm && selectedCabang && (
-                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[150] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-3xl w-full max-w-sm shadow-2xl p-10 border border-gray-100">
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-fade-in">
+                    <div className="bg-white rounded-[2rem] w-full max-w-sm shadow-2xl p-10 border border-gray-100 animate-scale-in">
                         <div className="mb-8">
                             <h2 className="text-xl font-bold text-gray-800">Edit Akses</h2>
-                            <p className="text-sm text-orange-500 font-bold mt-1">{selectedCabang.name}</p>
+                            <p className="text-sm text-orange-500 font-bold mt-1 uppercase tracking-wider">{selectedCabang.name}</p>
                         </div>
                         
                         <form onSubmit={handleUserSubmit} className="space-y-5">
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Nama Staff</label>
-                                <input type="text" value={userFormData.name} onChange={e => setUserFormData({...userFormData, name: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-orange-500/10 text-sm font-medium" placeholder="Nama" required />
+                                <input type="text" value={userFormData.name} onChange={e => setUserFormData({...userFormData, name: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-orange-500 text-sm font-medium" placeholder="Nama" required />
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Login / Email</label>
-                                <input type="text" value={userFormData.login} onChange={e => setUserFormData({...userFormData, login: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-orange-500/10 text-sm font-medium" placeholder="email@login.com" required />
+                                <input type="text" value={userFormData.login} onChange={e => setUserFormData({...userFormData, login: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-orange-500 text-sm font-medium" placeholder="email@login.com" required />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Password {editingUser && '(Opsional)'}</label>
-                                <input type="password" value={userFormData.password} onChange={e => setUserFormData({...userFormData, password: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-100 rounded-xl outline-none focus:ring-2 focus:ring-orange-500/10 text-sm font-medium" placeholder="••••••••" required={!editingUser} />
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Password {editingUser && '(Isi untuk ganti)'}</label>
+                                <input type="password" value={userFormData.password} onChange={e => setUserFormData({...userFormData, password: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-orange-500 text-sm font-medium" placeholder="••••••••" required={!editingUser} />
                             </div>
                             
                             <div className="flex gap-2 pt-6">
                                 <button type="button" onClick={() => setShowUserForm(false)} className="flex-1 py-3 bg-gray-50 text-gray-500 font-bold rounded-xl text-sm transition-colors">Batal</button>
-                                <button type="submit" className="flex-1 py-3 bg-orange-500 text-white font-bold rounded-xl text-sm shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all">Simpan</button>
+                                <button type="submit" disabled={isSubmitting} className="flex-1 py-3 bg-orange-500 text-white font-bold rounded-xl text-sm shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all">
+                                    {isSubmitting ? 'Saving...' : 'Simpan'}
+                                </button>
                             </div>
                         </form>
                     </div>

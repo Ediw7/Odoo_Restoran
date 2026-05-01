@@ -11,14 +11,23 @@ export default function Report({ cabangId }) {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    const [cabangList, setCabangList] = useState([]);
+    const [selectedCabang, setSelectedCabang] = useState(cabangId || "");
+
+    const fetchData = async () => {
+        const cs = await api.getCabang();
+        if (cs?.status === 'success') setCabangList(cs.data);
+    };
+
     const fetchReport = async () => {
         setLoading(true);
-        const res = await api.getFinanceReport(cabangId, filterMode, filterValue);
+        const res = await api.getFinanceReport(selectedCabang, filterMode, filterValue);
         if (res?.status === 'success') setData(res.data);
         setLoading(false);
     };
 
-    useEffect(() => { fetchReport(); }, [cabangId, filterMode, filterValue]);
+    useEffect(() => { fetchData(); }, []);
+    useEffect(() => { fetchReport(); }, [selectedCabang, filterMode, filterValue]);
 
     const handleModeChange = (mode) => {
         setFilterMode(mode);
@@ -28,7 +37,7 @@ export default function Report({ cabangId }) {
         else if (mode === 'year') setFilterValue(now.getFullYear().toString());
     };
 
-    if (loading) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-gray-200 border-t-orange-500 rounded-full animate-spin"></div></div>;
+    if (loading && !data) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-gray-200 border-t-orange-500 rounded-full animate-spin"></div></div>;
     if (!data) return <div className="py-20 text-center text-gray-500">Gagal memuat data laporan.</div>;
 
     const renderCustomBarLabel = ({ x, y, width, value }) => {
@@ -59,30 +68,30 @@ export default function Report({ cabangId }) {
                     <p className="text-sm text-gray-400 mt-1">Integrasi HPP Resep Material dengan Omset POS otomatis.</p>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-3 bg-white border border-gray-200 rounded-xl p-2 shadow-sm">
-                    <div className="flex bg-gray-50 p-1 rounded-lg">
+                <div className="flex flex-wrap items-center gap-3 bg-white border border-gray-200 rounded-2xl p-2 shadow-sm">
+                    <div className="flex bg-gray-50 p-1 rounded-xl">
                         {['day', 'week', 'month', 'year'].map(m => (
                             <button key={m} onClick={() => handleModeChange(m)}
-                                className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all uppercase tracking-wider ${filterMode === m ? 'bg-white shadow-sm text-orange-600' : 'text-gray-400 hover:text-gray-600'}`}>
+                                className={`px-4 py-1.5 rounded-lg text-[10px] font-black transition-all uppercase tracking-wider ${filterMode === m ? 'bg-white shadow-sm text-orange-600' : 'text-gray-400 hover:text-gray-600'}`}>
                                 {m === 'day' ? 'Harian' : m === 'week' ? 'Mingguan' : m === 'month' ? 'Bulanan' : 'Tahunan'}
                             </button>
                         ))}
                     </div>
 
-                    <div className="h-6 w-[1px] bg-gray-200"></div>
+                    <div className="h-6 w-[1px] bg-gray-200 hidden lg:block"></div>
 
                     <div className="flex items-center gap-2">
                         {(filterMode === 'day' || filterMode === 'week') && (
                             <input type="date" value={filterValue} onChange={e => setFilterValue(e.target.value)}
-                                className="bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5 text-sm font-semibold text-gray-700 outline-none focus:border-orange-400" />
+                                className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-orange-400" />
                         )}
                         {filterMode === 'month' && (
                             <input type="month" value={filterValue} onChange={e => setFilterValue(e.target.value)}
-                                className="bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5 text-sm font-semibold text-gray-700 outline-none focus:border-orange-400" />
+                                className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-orange-400" />
                         )}
                         {filterMode === 'year' && (
                             <select value={filterValue} onChange={e => setFilterValue(e.target.value)}
-                                className="bg-gray-50 border border-gray-100 rounded-lg px-3 py-1.5 text-sm font-semibold text-gray-700 outline-none focus:border-orange-400">
+                                className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-orange-400">
                                 {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
                             </select>
                         )}
@@ -90,9 +99,19 @@ export default function Report({ cabangId }) {
                 </div>
             </div>
 
-            <div className="flex items-center gap-2 text-sm font-bold text-orange-600 px-2 bg-orange-50 w-fit py-1 rounded-md">
-                <span className="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
-                {data.filter_label}
+            {/* Context Switcher (Replacing Period Label) */}
+            <div className="flex items-center gap-3">
+                <div className="flex items-center gap-2 bg-white border border-gray-100 px-4 py-2 rounded-xl shadow-sm">
+                    <span className="text-[10px] font-bold text-gray-400 uppercase">Outlet</span>
+                    <select 
+                        value={selectedCabang} 
+                        onChange={(e) => setSelectedCabang(e.target.value)}
+                        className="bg-transparent border-none p-0 text-sm font-bold text-gray-700 outline-none focus:ring-0 cursor-pointer min-w-[150px]"
+                    >
+                        <option value="">Semua Cabang (Global)</option>
+                        {cabangList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                </div>
             </div>
 
             {/* Metrics */}
@@ -106,9 +125,9 @@ export default function Report({ cabangId }) {
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                    <h3 className="font-semibold text-gray-800 mb-6 flex items-center justify-between">
-                        Tren Omset & Laba (Rp)
-                        <span className="text-[10px] text-gray-400 font-normal uppercase tracking-widest">Financial Status</span>
+                    <h3 className="font-bold text-gray-800 mb-6 flex items-center justify-between">
+                        Tren Omset & Laba
+                        <span className="text-[10px] text-gray-400 font-medium">Financial Status</span>
                     </h3>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
@@ -127,31 +146,31 @@ export default function Report({ cabangId }) {
                                 <Bar dataKey="profit" fill="#16a34a" radius={[4, 4, 0, 0]} name="Laba" barSize={35}>
                                     <LabelList dataKey="profit" content={renderCustomBarLabel} />
                                 </Bar>
-                                <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ paddingBottom: '20px', fontSize: '10px', fontWeight: 'bold' }} />
+                                <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ paddingBottom: '20px', fontSize: '10px', fontWeight: 'semibold' }} />
                             </BarChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                    <h3 className="font-semibold text-gray-800 mb-6 flex items-center justify-between">
-                        Ranking Omset Per Meja (Rp)
-                        <span className="text-[10px] text-gray-400 font-normal uppercase tracking-widest">Table Performance</span>
+                    <h3 className="font-bold text-gray-800 mb-6 flex items-center justify-between">
+                        {selectedCabang ? "Ranking Omset Per Meja" : "Ranking Omset Per Cabang"}
+                        <span className="text-[10px] text-gray-400 font-medium">Performance Ranking</span>
                     </h3>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart layout="vertical" data={data.top_tables.slice(0, 5)} margin={{ left: 60, right: 60 }}>
+                            <BarChart layout="vertical" data={selectedCabang ? (data.top_tables || []).slice(0, 5) : (data.branch_performance || []).slice(0, 5)} margin={{ left: 60, right: 60 }}>
                                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                                 <XAxis type="number" hide />
-                                <YAxis type="category" dataKey="table" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#475569', fontWeight: 600 }} width={100} />
+                                <YAxis type="category" dataKey={selectedCabang ? "table" : "name"} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#475569', fontWeight: 500 }} width={100} />
                                 <Tooltip
                                     cursor={{ fill: '#f8fafc' }}
                                     contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                                     formatter={(v) => formatRupiah(v)}
                                 />
                                 <Bar dataKey="total" radius={[0, 4, 4, 0]} barSize={25} name="Total Omset">
-                                    <LabelList dataKey="total" position="right" formatter={(v) => formatRupiah(v)} style={{ fontSize: '9px', fontWeight: 'bold', fill: '#f97316' }} />
-                                    {data.top_tables.map((entry, index) => (
+                                    <LabelList dataKey="total" position="right" formatter={(v) => formatRupiah(v)} style={{ fontSize: '9px', fontWeight: 'semibold', fill: '#f97316' }} />
+                                    {(selectedCabang ? (data.top_tables || []) : (data.branch_performance || [])).map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={['#f97316', '#fb923c', '#fdba74', '#fed7aa', '#ffedd5'][index % 5]} />
                                     ))}
                                 </Bar>
@@ -161,35 +180,43 @@ export default function Report({ cabangId }) {
                 </div>
             </div>
 
-            {/* Leaderboard Table */}
+            {/* Ranking Table */}
             <div className="bg-white border border-gray-100 rounded-2xl shadow-sm overflow-hidden">
                 <div className="px-6 py-5 border-b border-gray-50 flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-800">Meja Paling Laris (Top Tables)</h3>
-                    <span className="text-xs font-medium bg-orange-50 text-orange-600 px-3 py-1 rounded-full">Diurutkan berdasarkan Omset</span>
+                    <h3 className="font-bold text-gray-800">
+                        {selectedCabang ? "Meja Paling Laris" : "Performa Pendapatan Per Cabang"}
+                    </h3>
+                    <span className="text-xs font-medium bg-gray-50 text-gray-500 px-3 py-1 rounded-full border border-gray-100">
+                        Berdasarkan Omset Terbesar
+                    </span>
                 </div>
-                {data.top_tables.length === 0 ? (
-                    <div className="py-10 text-center text-gray-400 text-sm">Belum ada data meja di periode ini.</div>
+                {((selectedCabang ? (data.top_tables || []) : (data.branch_performance || [])).length === 0) ? (
+                    <div className="py-10 text-center text-gray-400 text-sm">Belum ada data di periode ini.</div>
                 ) : (
                     <div className="overflow-x-auto">
                         <table className="w-full text-left">
                             <thead className="bg-gray-50/50">
                                 <tr>
-                                    <th className="py-3 px-6 text-xs font-medium text-gray-400 uppercase tracking-wider">Identitas Meja</th>
-                                    <th className="py-3 px-6 text-xs font-medium text-gray-400 uppercase tracking-wider text-center">Jumlah Transaksi</th>
-                                    <th className="py-3 px-6 text-xs font-medium text-gray-800 uppercase tracking-wider text-right bg-orange-50/30">Total Omset</th>
+                                    <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                                        {selectedCabang ? "Identitas Meja" : "Nama Cabang"}
+                                    </th>
+                                    <th className="py-4 px-6 text-[10px] font-bold text-gray-400 uppercase tracking-wider text-center">Jumlah Transaksi</th>
+                                    <th className="py-4 px-6 text-[10px] font-bold text-gray-600 uppercase tracking-wider text-right">Total Omset</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-50">
-                                {data.top_tables.map((tbl, idx) => (
-                                    <tr key={tbl.table} className="hover:bg-gray-50/50 transition-colors">
+                                {(selectedCabang ? (data.top_tables || []) : (data.branch_performance || [])).map((item, idx) => (
+                                    <tr key={idx} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="py-4 px-6">
                                             <div className="flex items-center gap-3">
-                                                <div className="w-6 text-center font-bold text-gray-300 text-sm">#{idx + 1}</div>
-                                                <div className="font-black text-gray-800 uppercase italic">Meja {tbl.table}</div>
+                                                <div className="w-6 text-center font-medium text-gray-300 text-sm">#{idx + 1}</div>
+                                                <div className="font-semibold text-gray-800">
+                                                    {selectedCabang ? `Meja ${item.table}` : item.name}
+                                                </div>
                                             </div>
                                         </td>
-                                        <td className="py-4 px-6 text-center font-medium text-gray-600">{tbl.count}x Kunjungan</td>
-                                        <td className="py-4 px-6 text-right font-black text-orange-600 bg-orange-50/10">{formatRupiah(tbl.total)}</td>
+                                        <td className="py-4 px-6 text-center font-medium text-gray-600">{item.count || item.orders} Transaksi</td>
+                                        <td className="py-4 px-6 text-right font-bold text-gray-800">{formatRupiah(item.total)}</td>
                                     </tr>
                                 ))}
                             </tbody>

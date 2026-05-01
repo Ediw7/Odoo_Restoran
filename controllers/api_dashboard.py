@@ -240,6 +240,7 @@ class RestoranAPI_Dashboard_11(RestoranBase):
             total_cogs = 0.0
             top_profit_menus = {}
             top_tables = {}
+            branch_performance = {}
 
             # Cache the BOM cost to speed up
             menu_cost_cache = {}
@@ -250,6 +251,14 @@ class RestoranAPI_Dashboard_11(RestoranBase):
             for order in orders:
                 total_revenue += order.total_amount
                 
+                # Branch Performance aggregation (if global)
+                if not cabang_id:
+                    br_name = order.cabang_id.name or 'Pusat'
+                    if br_name not in branch_performance:
+                        branch_performance[br_name] = {'name': br_name, 'total': 0.0, 'orders': 0}
+                    branch_performance[br_name]['total'] += order.total_amount
+                    branch_performance[br_name]['orders'] += 1
+
                 # Top Tables aggregation
                 tbl = order.table_number or '-'
                 if tbl not in top_tables:
@@ -312,6 +321,9 @@ class RestoranAPI_Dashboard_11(RestoranBase):
             
             # Sort top tables by total revenue
             sorted_tables = sorted(top_tables.values(), key=lambda x: x['total'], reverse=True)
+
+            # Sort branch performance
+            sorted_branches = sorted(branch_performance.values(), key=lambda x: x['total'], reverse=True)
             
             # Sort chart data chronologically
             chart_data = sorted(chart_dict.values(), key=lambda x: x['label'])
@@ -325,6 +337,7 @@ class RestoranAPI_Dashboard_11(RestoranBase):
                 'total_orders': len(orders),
                 'top_profit_menus': sorted_menus[:10],
                 'top_tables': sorted_tables[:10],
+                'branch_performance': sorted_branches,
                 'chart_data': chart_data
             }})
         except Exception as e:
