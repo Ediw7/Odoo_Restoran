@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { api, formatRupiah, formatTime, getStatusLabel, getStatusColor, getTypeLabel } from "../api";
 
-export default function Orders({ cabangId }) {
+export default function Orders({ cabangId, userRole }) {
     const [orders, setOrders] = useState([]);
     const [cabangList, setCabangList] = useState([]);
+    const isOwner = userRole === 'owner' || userRole === 'admin';
     const [selectedCabang, setSelectedCabang] = useState(cabangId || "");
     const [filterState, setFilterState] = useState("done"); 
     const [filterType, setFilterType] = useState("");
@@ -15,14 +16,17 @@ export default function Orders({ cabangId }) {
     const [selectedOrder, setSelectedOrder] = useState(null);
 
     const fetchData = async () => {
-        const cs = await api.getCabang();
-        if (cs?.status === 'success') setCabangList(cs.data);
+        if (isOwner) {
+            const cs = await api.getCabang();
+            if (cs?.status === 'success') setCabangList(cs.data);
+        }
     };
 
     const fetchOrders = async () => {
         setLoading(true);
         const offset = (page - 1) * limit;
-        const res = await api.getOrders(selectedCabang, filterState, filterDate, limit, offset);
+        const branchToUse = isOwner ? selectedCabang : cabangId;
+        const res = await api.getOrders(branchToUse, filterState, filterDate, limit, offset);
         if (res?.status === 'success') {
             let data = res.data;
             if (filterType) data = data.filter(o => o.order_type === filterType);
@@ -41,6 +45,7 @@ export default function Orders({ cabangId }) {
             <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div className="flex flex-col gap-4">
                     <p className="text-sm text-gray-400">Arsip riwayat transaksi pembayaran cabang.</p>
+                    {isOwner && (
                     <div className="flex items-center gap-2 bg-white border border-gray-100 px-4 py-2 rounded-xl shadow-sm w-fit">
                         <span className="text-[10px] font-bold text-gray-400 uppercase">Outlet</span>
                         <select 
@@ -52,6 +57,7 @@ export default function Orders({ cabangId }) {
                             {cabangList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                         </select>
                     </div>
+                    )}
                 </div>
 
                 <div className="flex flex-wrap gap-3 items-center">

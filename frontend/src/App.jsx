@@ -81,7 +81,8 @@ export default function App() {
           { id: "cabang", label: "Manajemen Cabang" },
           { id: "report", label: "Laporan Keuangan" },
           { id: "menu", label: "Master Menu & Harga" },
-          { id: "orders", label: "Riwayat Transaksi" }
+          { id: "orders", label: "Riwayat Transaksi" },
+          { id: "pelanggan", label: "Pelanggan & Loyalty" },
         ];
       case 'cashier':
         return [
@@ -346,14 +347,14 @@ export default function App() {
           {activePage === "cabang" && <Cabang />}
           {activePage === "pos" && <POS cabangList={cabangList} activeCabangId={activeCabangId} />}
           {activePage === "dapur" && <Dapur cabangId={activeCabangId} />}
-          {activePage === "orders" && <Orders cabangId={activeCabangId} />}
+          {activePage === "orders" && <Orders cabangId={activeCabangId} userRole={userData?.role} />}
           {activePage === "inventory" && <Inventory activeCabangId={activeCabangId} />}
           {activePage === "bahan_baku" && <BahanBaku />}
           {activePage === "menu" && <Menu cabangId={activeCabangId} />}
-          {activePage === "report" && <Report cabangId={activeCabangId} />}
+          {activePage === "report" && <Report cabangId={activeCabangId} userRole={userData?.role} />}
           {activePage === "wastage" && <Wastage cabangId={activeCabangId} />}
           {activePage === "purchasing" && <Purchasing cabangList={cabangList} activeCabangId={activeCabangId} />}
-          {activePage === "pelanggan" && <Pelanggan />}
+          {activePage === "pelanggan" && <Pelanggan cabangId={activeCabangId} userRole={userData?.role} />}
         </div>
       </main>
 

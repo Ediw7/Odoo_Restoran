@@ -46,7 +46,28 @@ class RestoranAPI_Loyalty_15(RestoranBase):
         if request.httprequest.method == 'OPTIONS':
             return self._cors_preflight()
         try:
-            customers = request.env['restoran.customer'].sudo().search([], order='visit_count desc', limit=5)
+            cabang_id = kwargs.get('cabang_id')
+            limit_val = int(kwargs.get('limit', 20))
+            
+            if cabang_id:
+                # Filter: only customers who have orders at this branch
+                orders = request.env['restoran.order'].sudo().search([
+                    ('cabang_id', '=', int(cabang_id)),
+                    ('state', '=', 'done'),
+                    ('customer_name', '!=', False),
+                    ('customer_name', '!=', ''),
+                ])
+                # Get unique customer names from orders at this branch
+                branch_customer_names = list(set(orders.mapped('customer_name')))
+                if not branch_customer_names:
+                    return self._json_response({'status': 'success', 'data': []})
+                customers = request.env['restoran.customer'].sudo().search(
+                    [('name', 'in', branch_customer_names)], 
+                    order='visit_count desc', limit=limit_val
+                )
+            else:
+                customers = request.env['restoran.customer'].sudo().search([], order='visit_count desc', limit=limit_val)
+            
             data = []
             for c in customers:
                 data.append({

@@ -197,36 +197,70 @@ export default function Cabang() {
                 ) : filteredCabangs.map((c) => {
                     const branchUser = users.find(u => u.cabang_id === c.id);
                     return (
-                        <div key={c.id} className="bg-white border border-gray-100 rounded-2xl p-6 hover:border-gray-200 transition-all flex items-center justify-between group shadow-sm">
-                            <div className="flex flex-col">
-                                <h4 className="font-bold text-gray-800 text-lg">{c.name}</h4>
-                                <div className="mt-1 flex items-center gap-3">
-                                    <span className="text-xs font-medium text-gray-400">
-                                        ID Login: <span className="text-gray-600 font-semibold">{branchUser ? branchUser.login : '- belum diatur -'}</span>
-                                    </span>
+                        <div key={c.id} className="bg-white border border-gray-100 rounded-2xl p-6 hover:border-gray-200 transition-all group shadow-sm">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                    {/* Toggle Buka/Tutup */}
+                                    <button 
+                                        onClick={async () => {
+                                            const res = await api.manageCabang({ action: 'toggle', id: c.id });
+                                            if (res?.status === 'success') { toast.success(`Cabang ${c.is_open ? 'ditutup' : 'dibuka'}`); fetchData(); }
+                                            else toast.error(res?.message || 'Gagal toggle');
+                                        }}
+                                        className={`w-12 h-7 rounded-full relative transition-all cursor-pointer ${c.is_open ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                                        title={c.is_open ? 'Klik untuk tutup' : 'Klik untuk buka'}
+                                    >
+                                        <div className={`w-5 h-5 bg-white rounded-full absolute top-1 transition-all shadow-sm ${c.is_open ? 'right-1' : 'left-1'}`}></div>
+                                    </button>
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <h4 className="font-bold text-gray-800 text-lg">{c.name}</h4>
+                                            <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${c.is_open ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-400'}`}>
+                                                {c.is_open ? 'Buka' : 'Tutup'}
+                                            </span>
+                                        </div>
+                                        <p className="text-xs text-gray-400 mt-0.5">
+                                            Login: <span className="text-gray-600 font-semibold">{branchUser ? branchUser.login : '- belum diatur -'}</span>
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div className="flex gap-2">
-                                <button 
-                                    onClick={() => {
-                                        setSelectedCabang(c);
-                                        handleOpenUserForm(branchUser);
-                                    }} 
-                                    className="px-5 py-2.5 flex items-center gap-2 rounded-xl border border-gray-100 text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all text-xs font-bold shadow-sm"
-                                >
-                                    <span>✏️</span>
-                                    <span>Edit Akses</span>
-                                </button>
-                                <button onClick={() => handleDeleteCabang(c.id, c.name)} className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-300 hover:text-red-500 transition-all" title="Hapus">
-                                    <span className="text-lg">🗑️</span>
-                                </button>
+                                <div className="flex items-center gap-6">
+                                    {/* Quick Stats */}
+                                    <div className="hidden md:flex items-center gap-6 mr-4">
+                                        <div className="text-right">
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase">Order Hari Ini</p>
+                                            <p className="text-sm font-bold text-gray-700">{c.total_order_today || 0}</p>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase">Omzet</p>
+                                            <p className="text-sm font-bold text-orange-600">{formatRupiah(c.revenue_today || 0)}</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Actions */}
+                                    <div className="flex gap-2">
+                                        <button 
+                                            onClick={() => {
+                                                setSelectedCabang(c);
+                                                handleOpenUserForm(branchUser);
+                                            }} 
+                                            className="px-4 py-2 flex items-center gap-2 rounded-xl border border-gray-100 text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all text-xs font-bold shadow-sm"
+                                        >
+                                            <span>✏️</span>
+                                            <span className="hidden sm:inline">Edit Akses</span>
+                                        </button>
+                                        <button onClick={() => handleDeleteCabang(c.id, c.name)} className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all" title="Hapus">
+                                            🗑️
+                                        </button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     );
                 })}
                 {filteredCabangs.length === 0 && !loading && (
-                    <div className="py-20 text-center text-gray-400 text-sm font-medium italic italic">Cabang tidak ditemukan</div>
+                    <div className="py-20 text-center text-gray-400 text-sm font-medium">Cabang tidak ditemukan</div>
                 )}
             </div>
 

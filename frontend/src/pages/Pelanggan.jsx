@@ -6,10 +6,14 @@ const toUpperCase = (str) => str.toUpperCase();
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
-export default function Pelanggan() {
+export default function Pelanggan({ cabangId, userRole }) {
     const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(true);
     const { toast, ToastContainer } = useToast();
+
+    const isOwner = userRole === 'owner' || userRole === 'admin';
+    const [cabangList, setCabangList] = useState([]);
+    const [selectedCabang, setSelectedCabang] = useState(cabangId || "");
 
     // Reward modal state
     const [selected, setSelected] = useState(null);
@@ -21,14 +25,23 @@ export default function Pelanggan() {
     const [searchResult, setSearchResult] = useState(null);
     const [searching, setSearching] = useState(false);
 
+    useEffect(() => {
+        if (isOwner) {
+            api.getCabang().then(res => {
+                if (res?.status === 'success') setCabangList(res.data);
+            });
+        }
+    }, []);
+
     const fetchCustomers = async () => {
         setLoading(true);
-        const res = await api.getTopCustomers(20);
+        const branchToUse = isOwner ? selectedCabang : cabangId;
+        const res = await api.getTopCustomers(20, branchToUse);
         if (res?.status === "success") setCustomers(res.data);
         setLoading(false);
     };
 
-    useEffect(() => { fetchCustomers(); }, []);
+    useEffect(() => { fetchCustomers(); }, [selectedCabang, cabangId]);
 
     const handleGiveReward = async (e) => {
         e.preventDefault();
@@ -65,9 +78,24 @@ export default function Pelanggan() {
             <ToastContainer />
 
             {/* Header */}
-            <div className="mb-6">
-                <h1 className="text-2xl font-bold text-gray-800">Pelanggan & Loyalty</h1>
-                <p className="text-sm text-gray-400 mt-0.5">Cek poin pelanggan dan berikan reward langsung dari kasir</p>
+            <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-800">Pelanggan & Loyalty</h1>
+                    <p className="text-sm text-gray-400 mt-0.5">Cek poin pelanggan dan berikan reward langsung</p>
+                </div>
+                {isOwner && (
+                    <div className="flex items-center gap-2 bg-white border border-gray-100 px-4 py-2 rounded-xl shadow-sm">
+                        <span className="text-[10px] font-bold text-gray-400 uppercase">Outlet</span>
+                        <select 
+                            value={selectedCabang} 
+                            onChange={(e) => setSelectedCabang(e.target.value)}
+                            className="bg-transparent border-none p-0 text-sm font-bold text-gray-700 outline-none focus:ring-0 cursor-pointer min-w-[150px]"
+                        >
+                            <option value="">Semua Cabang</option>
+                            {cabangList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                    </div>
+                )}
             </div>
 
             {/* Search Loyalty Cepat */}

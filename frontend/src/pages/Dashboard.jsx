@@ -1,106 +1,246 @@
 import React, { useEffect, useState } from "react";
 import { api, formatRupiah } from "../api";
+import {
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+    BarChart, Bar, Cell, PieChart, Pie
+} from 'recharts';
 
 export default function Dashboard() {
     const [data, setData] = useState(null);
+    const [chartData, setChartData] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [period, setPeriod] = useState('today');
+    const [chartDays, setChartDays] = useState(7);
 
-    useEffect(() => {
-        fetchDashboard();
-    }, []);
+    useEffect(() => { fetchAll(); }, [period, chartDays]);
 
-    const fetchDashboard = async () => {
+    const fetchAll = async () => {
         setLoading(true);
-        const res = await api.getDashboard();
-        if (res && res.status === 'success') {
-            setData(res.data);
-        }
+        const [resDash, resChart] = await Promise.all([
+            api.getDashboard(null, period),
+            api.getChartData(null, chartDays)
+        ]);
+        if (resDash?.status === 'success') setData(resDash.data);
+        if (resChart?.status === 'success') setChartData(resChart.data);
         setLoading(false);
     };
 
-    if (loading || !data) {
+    if (loading && !data) {
         return (
             <div className="flex items-center justify-center h-full">
                 <div className="flex flex-col items-center gap-3">
-                    <div className="w-6 h-6 border-2 border-gray-200 border-t-brand-500 rounded-full animate-spin"></div>
+                    <div className="w-6 h-6 border-2 border-gray-200 border-t-orange-500 rounded-full animate-spin"></div>
                     <div className="text-sm font-medium text-gray-500">Memuat data...</div>
                 </div>
             </div>
         );
     }
+    if (!data) return <div className="py-20 text-center text-gray-500">Gagal memuat dashboard.</div>;
+
+    const COLORS = ['#f97316', '#fb923c', '#fdba74', '#fed7aa', '#ffedd5'];
 
     return (
-        <div className="animate-fade-in max-w-7xl mx-auto">
-            {/* Header Section */}
-            <div className="mb-8">
-                <h1 className="text-2xl font-bold text-gray-800 tracking-tight">Ringkasan Bisnis</h1>
-                <p className="text-sm text-gray-500 mt-1">Pantau performa seluruh cabang hari ini.</p>
-            </div>
-
-            {/* Stats Grid - Minimalist Style */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 mb-10">
-                <StatCard title="Cabang Buka" val={data.cabang_buka} icon="🏪" />
-                <StatCard title="Order Hari Ini" val={data.global.total_orders_today} />
-                <StatCard title="Pendapatan" val={formatRupiah(data.global.total_revenue_today)} />
-                <StatCard title="Menu Tersedia" val={data.global.total_menu_available} />
-            </div>
-
-            {/* Branch Stats */}
-            <div>
-                <h2 className="text-base font-semibold text-gray-800 mb-5">Performa Cabang</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    {data.cabang_stats.map(c => (
-                        <div key={c.id} className="bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow">
-
-                            {/* Branch Header */}
-                            <div className="flex justify-between items-start mb-6">
-                                <div>
-                                    <h3 className="font-bold text-gray-800 text-lg tracking-tight">{c.name}</h3>
-                                    <div className="flex items-center gap-2 mt-1.5">
-                                        <span className={`w-2 h-2 rounded-full ${c.is_open ? 'bg-emerald-500' : 'bg-slate-300'}`}></span>
-                                        <span className="text-xs font-medium text-gray-500">{c.is_open ? 'Beroperasi' : 'Tutup'}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Metrics Grid - Clean Lines */}
-                            <div className="grid grid-cols-3 gap-4 border-t border-gray-50 pt-5">
-                                <div>
-                                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Menu</p>
-                                    <p className="font-bold text-gray-700">{c.total_menu}</p>
-                                </div>
-                                <div>
-                                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Order</p>
-                                    <p className="font-bold text-gray-700">{c.total_order_today}</p>
-                                </div>
-                                <div>
-                                    <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1">Omzet</p>
-                                    <p className="font-bold text-brand-600 truncate" title={formatRupiah(c.revenue_today)}>
-                                        {formatRupiah(c.revenue_today)}
-                                    </p>
-                                </div>
-                            </div>
-
-                        </div>
-                    ))}
+        <div className="animate-fade-in max-w-7xl mx-auto pb-10">
+            {/* Header */}
+            <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-800 tracking-tight">Ringkasan Bisnis</h1>
+                    <p className="text-sm text-gray-500 mt-1">Pantau performa seluruh cabang secara real-time.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100 shadow-sm">
+                        {[
+                            { id: 'today', label: 'Hari Ini' },
+                            { id: 'week', label: 'Minggu' },
+                            { id: 'month', label: 'Bulan' },
+                            { id: 'year', label: 'Tahun' },
+                        ].map(p => (
+                            <button key={p.id} onClick={() => setPeriod(p.id)}
+                                className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${period === p.id ? 'bg-white shadow-sm text-orange-600' : 'text-gray-400 hover:text-gray-600'}`}>
+                                {p.label}
+                            </button>
+                        ))}
+                    </div>
+                    <button onClick={fetchAll} className="text-xs text-gray-400 hover:text-orange-500 transition-all bg-white border border-gray-100 px-3 py-2 rounded-xl shadow-sm">↻</button>
                 </div>
             </div>
+
+            {/* Stats Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <StatCard title="Cabang Buka" val={`${data.cabang_buka} / ${data.total_cabang}`} icon="🏪" sub="outlet aktif" />
+                <StatCard title="Total Order" val={data.global.total_orders} icon="📋" sub={`${period === 'today' ? 'hari ini' : period === 'week' ? 'minggu ini' : period === 'month' ? 'bulan ini' : 'tahun ini'}`} />
+                <StatCard title="Pendapatan" val={formatRupiah(data.global.total_revenue)} icon="💰" highlight />
+                <StatCard title="Menu Tersedia" val={data.global.total_menu_available} icon="🍽️" sub="item aktif" />
+            </div>
+
+            {/* Chart + Sidebar */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-8">
+                {/* Revenue Chart */}
+                <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                    <div className="flex items-center justify-between mb-6">
+                        <div>
+                            <h3 className="font-bold text-gray-800">Tren Pendapatan</h3>
+                            <p className="text-xs text-gray-400 mt-0.5">{chartDays} hari terakhir</p>
+                        </div>
+                        <div className="flex bg-gray-50 p-0.5 rounded-lg">
+                            {[7, 14, 30].map(d => (
+                                <button key={d} onClick={() => setChartDays(d)}
+                                    className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${chartDays === d ? 'bg-white shadow-sm text-orange-600' : 'text-gray-400'}`}>
+                                    {d}H
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    {chartData?.chart?.length > 0 ? (
+                        <ResponsiveContainer width="100%" height={220}>
+                            <AreaChart data={chartData.chart}>
+                                <defs>
+                                    <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.15} />
+                                        <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+                                <XAxis dataKey="label" tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                                <YAxis tick={{ fontSize: 10, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={v => `${(v/1000).toFixed(0)}K`} />
+                                <Tooltip formatter={(v) => formatRupiah(v)} labelStyle={{ fontSize: 11 }} contentStyle={{ borderRadius: 12, border: '1px solid #f3f4f6', fontSize: 12 }} />
+                                <Area type="monotone" dataKey="revenue" stroke="#f97316" strokeWidth={2.5} fill="url(#colorRev)" />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    ) : (
+                        <div className="h-[220px] flex items-center justify-center text-gray-300 text-sm">Belum ada data chart</div>
+                    )}
+                </div>
+
+                {/* Top Menu Terlaris */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                    <h3 className="font-bold text-gray-800 mb-1">Menu Terlaris</h3>
+                    <p className="text-xs text-gray-400 mb-5">{chartDays} hari terakhir</p>
+                    {chartData?.top_menu?.length > 0 ? (
+                        <div className="space-y-3">
+                            {chartData.top_menu.map((m, i) => (
+                                <div key={m.id} className="flex items-center gap-3">
+                                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-black text-white ${i === 0 ? 'bg-orange-500' : i === 1 ? 'bg-orange-400' : 'bg-orange-300'}`}>
+                                        {i + 1}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-sm font-semibold text-gray-800 truncate">{m.name}</p>
+                                        <p className="text-[10px] text-gray-400">{m.qty_sold} terjual · {m.kategori}</p>
+                                    </div>
+                                    <span className="text-xs font-bold text-gray-600">{formatRupiah(m.revenue)}</span>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="h-40 flex items-center justify-center text-gray-300 text-sm">Belum ada data</div>
+                    )}
+                </div>
+            </div>
+
+            {/* Payment Breakdown + Branch Performance */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 mb-8">
+                {/* Payment Methods */}
+                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                    <h3 className="font-bold text-gray-800 mb-1">Metode Pembayaran</h3>
+                    <p className="text-xs text-gray-400 mb-5">{chartDays} hari terakhir</p>
+                    {chartData?.payment_breakdown?.length > 0 ? (
+                        <>
+                            <div className="flex justify-center mb-4">
+                                <PieChart width={140} height={140}>
+                                    <Pie data={chartData.payment_breakdown} dataKey="count" nameKey="label" cx="50%" cy="50%" innerRadius={40} outerRadius={65} paddingAngle={3}>
+                                        {chartData.payment_breakdown.map((_, i) => (
+                                            <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                </PieChart>
+                            </div>
+                            <div className="space-y-2">
+                                {chartData.payment_breakdown.map((p, i) => (
+                                    <div key={p.method} className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }}></div>
+                                            <span className="text-xs font-medium text-gray-600">{p.label}</span>
+                                        </div>
+                                        <span className="text-xs font-bold text-gray-800">{p.percentage}%</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="h-40 flex items-center justify-center text-gray-300 text-sm">Belum ada data</div>
+                    )}
+                </div>
+
+                {/* Branch Performance */}
+                <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                    <h3 className="font-bold text-gray-800 mb-1">Performa Cabang</h3>
+                    <p className="text-xs text-gray-400 mb-5">Statistik per outlet — {period === 'today' ? 'hari ini' : period === 'week' ? 'minggu ini' : period === 'month' ? 'bulan ini' : 'tahun ini'}</p>
+                    <div className="space-y-3">
+                        {data.cabang_stats.map((c, i) => {
+                            const maxRev = Math.max(...data.cabang_stats.map(x => x.revenue_today), 1);
+                            const pct = (c.revenue_today / maxRev) * 100;
+                            return (
+                                <div key={c.id} className="flex items-center gap-4">
+                                    <div className="w-8 text-center">
+                                        <span className={`text-xs font-black ${i === 0 ? 'text-orange-500' : 'text-gray-300'}`}>#{i + 1}</span>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between mb-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-bold text-gray-800">{c.name}</span>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${c.is_open ? 'bg-emerald-500' : 'bg-gray-300'}`}></span>
+                                            </div>
+                                            <div className="flex items-center gap-4">
+                                                <span className="text-[10px] text-gray-400 font-medium">{c.total_order_today} order</span>
+                                                <span className="text-sm font-bold text-gray-800">{formatRupiah(c.revenue_today)}</span>
+                                            </div>
+                                        </div>
+                                        <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                                            <div className="h-full bg-orange-500 rounded-full transition-all duration-500" style={{ width: `${pct}%` }}></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                        {data.cabang_stats.length === 0 && (
+                            <div className="py-10 text-center text-gray-300 text-sm">Belum ada data cabang</div>
+                        )}
+                    </div>
+                </div>
+            </div>
+
+            {/* Quick Summary */}
+            {chartData?.summary && (
+                <div className="bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl p-6 text-white shadow-lg shadow-orange-500/20">
+                    <div className="grid grid-cols-3 gap-6 text-center">
+                        <div>
+                            <p className="text-white/70 text-xs font-bold uppercase tracking-wider mb-1">Total Revenue ({chartDays}H)</p>
+                            <p className="text-2xl font-bold">{formatRupiah(chartData.summary.total_revenue)}</p>
+                        </div>
+                        <div>
+                            <p className="text-white/70 text-xs font-bold uppercase tracking-wider mb-1">Total Transaksi</p>
+                            <p className="text-2xl font-bold">{chartData.summary.total_orders}</p>
+                        </div>
+                        <div>
+                            <p className="text-white/70 text-xs font-bold uppercase tracking-wider mb-1">Rata-rata / Order</p>
+                            <p className="text-2xl font-bold">{formatRupiah(chartData.summary.avg_order_value)}</p>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
 
-// Komponen StatCard yang lebih bersih tanpa warna background berlebihan
-function StatCard({ title, val, icon }) {
+function StatCard({ title, val, icon, sub, highlight }) {
     return (
-        <div className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm flex flex-col justify-between">
-            <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-xl">
-                    {icon}
-                </div>
+        <div className={`rounded-2xl p-5 border shadow-sm flex flex-col justify-between ${highlight ? 'bg-orange-50 border-orange-100' : 'bg-white border-gray-100'}`}>
+            <div className="flex items-center justify-between mb-3">
+                <span className="text-xl">{icon}</span>
             </div>
             <div>
-                <h3 className="text-2xl font-bold text-gray-800 tracking-tight">{val}</h3>
-                <p className="text-sm font-medium text-gray-500 mt-1">{title}</p>
+                <h3 className={`text-xl font-bold tracking-tight ${highlight ? 'text-orange-600' : 'text-gray-800'}`}>{val}</h3>
+                <p className="text-xs font-medium text-gray-400 mt-1">{sub || title}</p>
             </div>
         </div>
     );

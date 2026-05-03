@@ -30,16 +30,6 @@ class RestoranAPI_Dashboard_7(RestoranBase):
                 'cabang_stats': [],
             }
 
-            for c in cabang_list:
-                dashboard['cabang_stats'].append({
-                    'id': c.id,
-                    'name': c.name,
-                    'is_open': c.is_open,
-                    'total_menu': c.total_menu,
-                    'total_order_today': c.total_order_today,
-                    'revenue_today': c.revenue_today,
-                })
-
             # Filter waktu untuk pesanan
             order_domain = [('state', '=', 'done')]
             if cabang_id:
@@ -53,7 +43,6 @@ class RestoranAPI_Dashboard_7(RestoranBase):
                 first_day_of_month = today.replace(day=1)
                 order_domain += [('order_date', '>=', first_day_of_month.strftime('%Y-%m-%d 00:00:00'))]
             elif period == 'week':
-                # Start of current week (Monday)
                 start_week = today - timedelta(days=today.weekday())
                 order_domain += [('order_date', '>=', start_week.strftime('%Y-%m-%d 00:00:00'))]
             elif period == 'year':
@@ -62,11 +51,23 @@ class RestoranAPI_Dashboard_7(RestoranBase):
 
             all_orders = request.env['restoran.order'].sudo().search(order_domain)
 
+            # Compute per-branch stats from filtered orders (NOT hardcoded today)
+            for c in cabang_list:
+                branch_orders = all_orders.filtered(lambda o: o.cabang_id.id == c.id)
+                dashboard['cabang_stats'].append({
+                    'id': c.id,
+                    'name': c.name,
+                    'is_open': c.is_open,
+                    'total_menu': c.total_menu,
+                    'total_order_today': len(branch_orders),
+                    'revenue_today': sum(branch_orders.mapped('total_amount')),
+                })
+
             dashboard['global'] = {
                 'total_orders': len(all_orders),
-                'total_orders_today': len(all_orders), # for compatibility
+                'total_orders_today': len(all_orders),
                 'total_revenue': sum(all_orders.mapped('total_amount')),
-                'total_revenue_today': sum(all_orders.mapped('total_amount')), # for compatibility
+                'total_revenue_today': sum(all_orders.mapped('total_amount')),
                 'total_menu_available': request.env['restoran.menu'].sudo().search_count([
                     ('available', '=', True)
                 ] + ([('cabang_id', 'in', [False, int(cabang_id)])] if cabang_id else [])),

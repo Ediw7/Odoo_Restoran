@@ -5,23 +5,27 @@ import {
     BarChart, Bar, Legend, Cell, LabelList
 } from 'recharts';
 
-export default function Report({ cabangId }) {
+export default function Report({ cabangId, userRole }) {
     const [filterMode, setFilterMode] = useState('day'); // day, week, month, year
     const [filterValue, setFilterValue] = useState(new Date().toISOString().split('T')[0]);
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    const isOwner = userRole === 'owner' || userRole === 'admin';
     const [cabangList, setCabangList] = useState([]);
     const [selectedCabang, setSelectedCabang] = useState(cabangId || "");
 
     const fetchData = async () => {
-        const cs = await api.getCabang();
-        if (cs?.status === 'success') setCabangList(cs.data);
+        if (isOwner) {
+            const cs = await api.getCabang();
+            if (cs?.status === 'success') setCabangList(cs.data);
+        }
     };
 
     const fetchReport = async () => {
         setLoading(true);
-        const res = await api.getFinanceReport(selectedCabang, filterMode, filterValue);
+        const branchToUse = isOwner ? selectedCabang : cabangId;
+        const res = await api.getFinanceReport(branchToUse, filterMode, filterValue);
         if (res?.status === 'success') setData(res.data);
         setLoading(false);
     };
@@ -99,7 +103,8 @@ export default function Report({ cabangId }) {
                 </div>
             </div>
 
-            {/* Context Switcher (Replacing Period Label) */}
+            {/* Context Switcher - Only for Owner/Admin */}
+            {isOwner && (
             <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 bg-white border border-gray-100 px-4 py-2 rounded-xl shadow-sm">
                     <span className="text-[10px] font-bold text-gray-400 uppercase">Outlet</span>
@@ -113,6 +118,7 @@ export default function Report({ cabangId }) {
                     </select>
                 </div>
             </div>
+            )}
 
             {/* Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
