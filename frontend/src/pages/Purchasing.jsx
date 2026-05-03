@@ -36,8 +36,8 @@ export default function Purchasing({ cabangList, activeCabangId }) {
     const fetchInitialData = async () => {
         setLoading(true);
         const [supRes, bahanRes] = await Promise.all([
-            api.getSuppliers(),
-            api.getBahanBaku(),
+            api.getSuppliers(activeCabangId),
+            api.getBahanBaku(activeCabangId),
         ]);
         if (supRes?.status === "success") setSuppliers(supRes.data);
         if (bahanRes?.status === "success") setBahans(bahanRes.data);
@@ -95,13 +95,13 @@ export default function Purchasing({ cabangList, activeCabangId }) {
         e.preventDefault();
         if (!supForm.name.trim()) return;
         setSupSaving(true); setSupMsg({ type: "", text: "" });
-        const res = await api.createSupplier(supForm);
+        const res = await api.createSupplier({ ...supForm, cabang_id: activeCabangId });
         setSupSaving(false);
         if (res?.status === "success") {
             setSupMsg({ type: "success", text: `Supplier "${supForm.name}" berhasil ditambahkan.` });
             setSupForm({ name: "", phone: "", address: "" });
             setShowSupForm(false);
-            const updated = await api.getSuppliers();
+            const updated = await api.getSuppliers(activeCabangId);
             if (updated?.status === "success") setSuppliers(updated.data);
         } else {
             setSupMsg({ type: "error", text: res?.message || "Gagal." });
@@ -113,7 +113,7 @@ export default function Purchasing({ cabangList, activeCabangId }) {
         const res = await api.deleteSupplier(id);
         if (res?.status === "success") {
             toast.success(`Supplier "${name}" dihapus.`);
-            const updated = await api.getSuppliers();
+            const updated = await api.getSuppliers(activeCabangId);
             if (updated?.status === "success") setSuppliers(updated.data);
         } else toast.error(res?.message || "Gagal.");
     };
@@ -126,7 +126,7 @@ export default function Purchasing({ cabangList, activeCabangId }) {
         setBahanSaving(false);
         if (res?.status === 'success') {
             toast.success(`Bahan "${newBahan.name}" berhasil ditambahkan ke master data!`);
-            const bahanRes = await api.getBahanBaku();
+            const bahanRes = await api.getBahanBaku(activeCabangId);
             if (bahanRes?.status === 'success') {
                 setBahans(bahanRes.data);
                 // If we opened this from a specific line, auto-select it

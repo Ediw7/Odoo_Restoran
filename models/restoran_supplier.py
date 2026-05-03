@@ -6,6 +6,7 @@ class RestoranSupplier(models.Model):
     _rec_name = 'name'
 
     name = fields.Char(string='Nama Supplier', required=True)
+    cabang_id = fields.Many2one('restoran.cabang', string='Cabang', ondelete='cascade')
     phone = fields.Char(string='No. Telepon')
     address = fields.Text(string='Alamat')
     active = fields.Boolean(default=True)

@@ -30,7 +30,9 @@ export default function Inventory({ activeCabangId }) {
 
     const fetchInventory = async () => {
         setLoading(true);
-        const res = await api.getMenu();
+        let url = '/api/menu';
+        if (activeCabangId) url += `?cabang_id=${activeCabangId}`;
+        const res = await api.apiFetch(url);
         if (res?.status === 'success') setMenus(res.data.filter(m => m.use_stock));
         setLoading(false);
     };
@@ -57,7 +59,7 @@ export default function Inventory({ activeCabangId }) {
             return setNotification({ type: 'error', message: "Harap isi semua field" });
         }
         setIsSubmitting(true);
-        const res = await api.createMenu({ ...newMenu, use_stock: true, stock_qty: 0 });
+        const res = await api.createMenu({ ...newMenu, use_stock: true, stock_qty: 0, cabang_id: activeCabangId });
         if (res?.status === 'success') {
             setNotification({ type: 'success', message: "Menu berhasil ditambahkan" });
             setShowAddMenu(false);
@@ -116,40 +118,55 @@ export default function Inventory({ activeCabangId }) {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {filtered.map(m => (
-                        <div key={m.id} onClick={() => setSelectedBom({ name: m.name, lines: m.bom_line_ids || [] })}
-                            className="bg-white border border-gray-100 rounded-xl p-4 hover:border-gray-200 hover:shadow-sm transition-all flex flex-col cursor-pointer">
-                            <div className="flex justify-between items-start mb-3">
-                                <div>
-                                    <div className="text-xs text-gray-400 mb-0.5">{m.kategori?.name}</div>
-                                    <h3 className="font-semibold text-gray-800 text-sm">{m.name}</h3>
+                    {filtered.map(m => {
+                        const isLowStock = m.stock_qty <= 5 && m.stock_qty > 0;
+                        const isOutOfStock = m.stock_qty <= 0;
+                        const cardHalo = isOutOfStock ? 'shadow-[0_0_0_1px_rgba(239,68,68,0.2)]' : isLowStock ? 'shadow-[0_0_0_1px_rgba(234,179,8,0.3)]' : '';
+
+                        return (
+                            <div key={m.id} onClick={() => setSelectedBom({ name: m.name, lines: m.bom_line_ids || [] })}
+                                className={`bg-white border rounded-xl p-4 transition-all flex flex-col cursor-pointer ${isOutOfStock ? 'border-red-200 bg-red-50/10' : isLowStock ? 'border-yellow-200' : 'border-gray-100 hover:border-gray-200'} ${cardHalo}`}>
+                                <div className="flex justify-between items-start mb-3">
+                                    <div>
+                                        <div className="text-xs text-gray-400 mb-0.5">{m.kategori?.name}{m.code ? ` · ${m.code}` : ''}</div>
+                                        <h3 className="font-semibold text-gray-800 text-sm max-w-[180px] break-words">{m.name}</h3>
+                                    </div>
+                                    <div className={`px-2 py-0.5 rounded text-[10px] font-bold ${isOutOfStock ? 'bg-red-100 text-red-600' : isLowStock ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
+                                        {isOutOfStock ? 'HABIS' : isLowStock ? 'MENIPIS' : 'AMAN'}
+                                    </div>
                                 </div>
-                                <div className={`w-2 h-2 rounded-full mt-1.5 ${m.stock_qty <= 0 ? 'bg-red-400' : m.stock_qty <= 5 ? 'bg-yellow-400' : 'bg-green-400'}`}></div>
-                            </div>
 
-                            <div className="flex items-baseline gap-1.5 mb-4">
-                                <span className={`text-2xl font-bold ${m.stock_qty <= 0 ? 'text-red-500' : 'text-gray-800'}`}>{m.stock_qty}</span>
-                                <span className="text-xs text-gray-400">porsi</span>
-                            </div>
+                                <div className="mb-3">
+                                    <div className="text-xs text-gray-500 font-medium">Harga Jual:</div>
+                                    <div className="text-sm font-semibold text-gray-700">{formatRupiah(m.price)} <span className="text-xs text-gray-400 font-normal">/ porsi</span></div>
+                                </div>
 
-                            <div className="bg-gray-50 rounded-lg p-3 mb-3" onClick={e => e.stopPropagation()}>
-                                <label className="block text-xs text-gray-400 mb-1.5">Tambah Stok</label>
-                                <div className="flex gap-2">
-                                    <input type="number" placeholder="Jumlah" value={updateQty[m.id] || ''} onChange={e => setUpdateQty(prev => ({ ...prev, [m.id]: e.target.value }))}
-                                        className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:border-orange-400" />
-                                    <button onClick={(e) => handleAddStock(e, m.id, m.name)} disabled={isSaving === m.id}
-                                        className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-200 text-white min-w-[36px] h-8 rounded-lg flex items-center justify-center text-sm font-bold transition-all">
-                                        {isSaving === m.id ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : '+'}
-                                    </button>
+                                <div className="flex items-baseline gap-1.5 mb-4 border-b border-gray-50 pb-4">
+                                    <span className={`text-3xl font-bold ${isOutOfStock ? 'text-red-500' : 'text-gray-800'}`}>
+                                        {m.stock_qty % 1 === 0 ? m.stock_qty : parseFloat(m.stock_qty).toFixed(2)}
+                                    </span>
+                                    <span className="text-xs font-semibold text-gray-400">porsi</span>
+                                </div>
+
+                                <div className={`rounded-lg p-3 mt-auto ${isOutOfStock ? 'bg-red-50/50' : 'bg-gray-50'}`} onClick={e => e.stopPropagation()}>
+                                    <label className="block text-xs font-medium text-gray-500 mb-1.5">Tambah Stok Etalase</label>
+                                    <div className="flex gap-2">
+                                        <input type="number" placeholder="Jumlah porsi" value={updateQty[m.id] || ''} onChange={e => setUpdateQty(prev => ({ ...prev, [m.id]: e.target.value }))}
+                                            className="w-full px-3 py-1.5 bg-white border border-gray-200 rounded-md text-sm outline-none focus:border-orange-400 font-medium" />
+                                        <button onClick={(e) => handleAddStock(e, m.id, m.name)} disabled={isSaving === m.id}
+                                            className="bg-orange-500 hover:bg-orange-600 disabled:bg-gray-200 text-white min-w-[70px] h-[34px] rounded-md flex items-center justify-center text-xs font-bold transition-all px-2">
+                                            {isSaving === m.id ? <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : 'Tambah'}
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div className="mt-3 flex justify-between items-center text-xs text-gray-300 pt-2 border-t border-gray-50">
+                                    <span>Komposisi BOM</span>
+                                    <span>{m.bom_line_ids?.length || 0} bahan</span>
                                 </div>
                             </div>
-
-                            <div className="mt-auto flex justify-between items-center text-xs text-gray-300 pt-2 border-t border-gray-50">
-                                <span>Komposisi</span>
-                                <span>{m.bom_line_ids?.length || 0} bahan</span>
-                            </div>
-                        </div>
-                    ))}
+                        );
+                    })}
                 </div>
             )}
 

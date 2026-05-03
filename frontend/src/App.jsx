@@ -349,7 +349,7 @@ export default function App() {
           {activePage === "dapur" && <Dapur cabangId={activeCabangId} />}
           {activePage === "orders" && <Orders cabangId={activeCabangId} userRole={userData?.role} />}
           {activePage === "inventory" && <Inventory activeCabangId={activeCabangId} />}
-          {activePage === "bahan_baku" && <BahanBaku />}
+          {activePage === "bahan_baku" && <BahanBaku cabangId={activeCabangId} />}
           {activePage === "menu" && <Menu cabangId={activeCabangId} />}
           {activePage === "report" && <Report cabangId={activeCabangId} userRole={userData?.role} />}
           {activePage === "wastage" && <Wastage cabangId={activeCabangId} />}

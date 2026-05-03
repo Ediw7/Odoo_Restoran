@@ -10,6 +10,7 @@ class RestoranBahan(models.Model):
 
     name = fields.Char(string='Nama Bahan', required=True)
     code = fields.Char(string='Kode')
+    cabang_id = fields.Many2one('restoran.cabang', string='Cabang', ondelete='cascade')
     uom = fields.Selection([
         ('kg', 'Kilogram'),
         ('g', 'Gram'),

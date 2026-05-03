@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api, formatRupiah } from '../api';
 
-export default function BahanBaku() {
+export default function BahanBaku({ cabangId }) {
     const [bahan, setBahan] = useState([]);
     const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
@@ -14,14 +14,14 @@ export default function BahanBaku() {
     const [newBahan, setNewBahan] = useState({ name: '', uom: 'pcs', price_per_unit: '' });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
-    useEffect(() => { fetchBahan(); }, []);
+    useEffect(() => { fetchBahan(); }, [cabangId]);
     useEffect(() => {
         if (notification) { const t = setTimeout(() => setNotification(null), 3000); return () => clearTimeout(t); }
     }, [notification]);
 
     const fetchBahan = async () => {
         setLoading(true);
-        const res = await api.getBahanBaku();
+        const res = await api.getBahanBaku(cabangId);
         if (res?.status === 'success') setBahan(res.data);
         setLoading(false);
     };
@@ -48,7 +48,7 @@ export default function BahanBaku() {
             return setNotification({ type: 'error', message: "Nama & Satuan wajib diisi" });
         }
         setIsSubmitting(true);
-        const res = await api.createBahanBaku({ ...newBahan, price_per_unit: parseFloat(newBahan.price_per_unit || 0) });
+        const res = await api.createBahanBaku({ ...newBahan, price_per_unit: parseFloat(newBahan.price_per_unit || 0), cabang_id: cabangId });
         if (res?.status === 'success') {
             setNotification({ type: 'success', message: "Master Bahan Baku berhasil dibuat" });
             setShowAddModal(false);

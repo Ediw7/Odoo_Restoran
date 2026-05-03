@@ -14,8 +14,19 @@ class RestoranAPI_Purchasing(RestoranBase):
     def get_suppliers(self, **kwargs):
         if request.httprequest.method == 'OPTIONS': return self._cors_preflight()
         try:
-            suppliers = request.env['restoran.supplier'].sudo().search([('active', '=', True)])
-            data = [{'id': s.id, 'name': s.name, 'phone': s.phone or '', 'address': s.address or ''} for s in suppliers]
+            cabang_id = kwargs.get('cabang_id')
+            domain = [('active', '=', True)]
+            if cabang_id:
+                domain.append(('cabang_id', '=', int(cabang_id)))
+            
+            suppliers = request.env['restoran.supplier'].sudo().search(domain)
+            data = [{
+                'id': s.id, 
+                'name': s.name, 
+                'phone': s.phone or '', 
+                'address': s.address or '',
+                'cabang_id': s.cabang_id.id if s.cabang_id else False
+            } for s in suppliers]
             return self._json_response({'status': 'success', 'data': data})
         except Exception as e:
             return self._json_response({'status': 'error', 'message': str(e)}, 500)
@@ -118,13 +129,20 @@ class RestoranAPI_Purchasing(RestoranBase):
             data_str = request.httprequest.data.decode('utf-8')
             data = json.loads(data_str) if data_str else {}
             name = data.get('name', '').strip()
+            cabang_id = data.get('cabang_id')
+            
             if not name:
                 return self._json_response({'status': 'error', 'message': 'Nama supplier wajib diisi'}, 400)
-            supplier = request.env['restoran.supplier'].sudo().create({
+            
+            vals = {
                 'name': name,
                 'phone': data.get('phone', ''),
                 'address': data.get('address', ''),
-            })
+            }
+            if cabang_id:
+                vals['cabang_id'] = int(cabang_id)
+                
+            supplier = request.env['restoran.supplier'].sudo().create(vals)
             return self._json_response({'status': 'success', 'data': {'id': supplier.id, 'name': supplier.name}})
         except Exception as e:
             return self._json_response({'status': 'error', 'message': str(e)}, 500)

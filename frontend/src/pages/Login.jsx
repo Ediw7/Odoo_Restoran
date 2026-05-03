@@ -35,9 +35,6 @@ export default function Login({ onLoginSuccess }) {
 
                 {/* Logo / Brand */}
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-orange-400 to-amber-500 rounded-2xl shadow-lg shadow-orange-300/50 mb-4">
-                        <span className="text-3xl">🍜</span>
-                    </div>
                     <h1 className="text-2xl font-extrabold text-gray-900 tracking-tight">Warung Nusantara</h1>
                     <p className="text-gray-400 text-sm mt-1 font-medium">Sistem ERP Restoran Terpusat</p>
                 </div>

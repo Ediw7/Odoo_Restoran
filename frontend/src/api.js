@@ -77,7 +77,11 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(payload)
     }),
-    getBahanBaku: () => apiFetch('/api/bahan_baku'),
+    getBahanBaku: (cabangId) => {
+        let url = '/api/bahan_baku';
+        if (cabangId) url += `?cabang_id=${cabangId}`;
+        return apiFetch(url);
+    },
     createBahanBaku: (data) => apiFetch('/api/bahan_baku_create', { method: 'POST', body: JSON.stringify(data) }),
     updateBahanStock: (data) => apiFetch('/api/update_bahan_baku', { method: 'POST', body: JSON.stringify(data) }),
     getFinanceReport: (cabangId, filterMode, filterValue) => {
@@ -124,7 +128,11 @@ export const api = {
     deleteSupplier: (supplierId) => apiFetch(`/api/supplier_delete/${supplierId}`, { method: 'POST' }),
 
     // Purchasing
-    getSuppliers: () => apiFetch('/api/suppliers'),
+    getSuppliers: (cabangId) => {
+        let url = '/api/suppliers';
+        if (cabangId) url += `?cabang_id=${cabangId}`;
+        return apiFetch(url);
+    },
     getPurchases: (cabangId, limit = 20, offset = 0) => {
         let url = `/api/purchases?limit=${limit}&offset=${offset}`;
         if (cabangId) url += `&cabang_id=${cabangId}`;

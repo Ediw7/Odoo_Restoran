@@ -202,7 +202,9 @@ class RestoranAPI_Master_3(RestoranBase):
         if request.httprequest.method == 'OPTIONS':
             return self._cors_preflight()
         try:
-            bahan_list = request.env['restoran.bahan'].sudo().search([])
+            cabang_id = kwargs.get('cabang_id')
+            domain = [('cabang_id', '=', int(cabang_id))] if cabang_id else []
+            bahan_list = request.env['restoran.bahan'].sudo().search(domain)
             data = [{
                 'id': b.id,
                 'name': b.name,
@@ -212,6 +214,7 @@ class RestoranAPI_Master_3(RestoranBase):
                 'min_stock': b.min_stock,
                 'stock_status': b.stock_status,
                 'price_per_unit': b.price_per_unit,
+                'cabang_id': b.cabang_id.id if b.cabang_id else False,
             } for b in bahan_list]
             return self._json_response({'status': 'success', 'data': data})
         except Exception as e:
@@ -247,13 +250,16 @@ class RestoranAPI_Master_3(RestoranBase):
             if not data.get('name') or not data.get('uom'):
                 return self._json_response({'status': 'error', 'message': 'Nama dan Satuan wajib diisi'}, 400)
             
-            bahan = request.env['restoran.bahan'].sudo().create({
+            vals = {
                 'name': data.get('name'),
                 'uom': data.get('uom'),
                 'stock_qty': float(data.get('stock_qty', 0)),
                 'min_stock': float(data.get('min_stock', 5)),
                 'price_per_unit': float(data.get('price_per_unit', 0)),
-            })
+            }
+            if data.get('cabang_id'):
+                vals['cabang_id'] = int(data.get('cabang_id'))
+            bahan = request.env['restoran.bahan'].sudo().create(vals)
             return self._json_response({'status': 'success', 'message': 'Bahan Baku berhasil ditambahkan', 'data': {'id': bahan.id}})
         except Exception as e:
             return self._json_response({'status': 'error', 'message': str(e)}, 500)
@@ -268,7 +274,7 @@ class RestoranAPI_Master_3(RestoranBase):
             kategori_id = kwargs.get('kategori_id')
 
             if cabang_id:
-                domain += ['|', ('cabang_id', '=', int(cabang_id)), ('cabang_id', '=', False)]
+                domain.append(('cabang_id', '=', int(cabang_id)))
             if kategori_id:
                 domain.append(('kategori_id', '=', int(kategori_id)))
 
@@ -319,14 +325,17 @@ class RestoranAPI_Master_3(RestoranBase):
             if not data.get('name') or not data.get('kategori_id') or not data.get('price'):
                 return self._json_response({'status': 'error', 'message': 'Nama, Kategori, dan Harga wajib diisi'}, 400)
             
-            menu = request.env['restoran.menu'].sudo().create({
+            vals = {
                 'name': data.get('name'),
                 'kategori_id': int(data.get('kategori_id')),
                 'price': float(data.get('price')),
                 'use_stock': data.get('use_stock', True),
                 'stock_qty': float(data.get('stock_qty', 0)),
                 'available': True,
-            })
+            }
+            if data.get('cabang_id'):
+                vals['cabang_id'] = int(data.get('cabang_id'))
+            menu = request.env['restoran.menu'].sudo().create(vals)
             return self._json_response({'status': 'success', 'message': 'Menu berhasil ditambahkan', 'data': {'id': menu.id}})
         except Exception as e:
             return self._json_response({'status': 'error', 'message': str(e)}, 500)
