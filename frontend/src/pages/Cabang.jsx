@@ -226,18 +226,6 @@ export default function Cabang() {
                                 </div>
 
                                 <div className="flex items-center gap-6">
-                                    {/* Quick Stats */}
-                                    <div className="hidden md:flex items-center gap-6 mr-4">
-                                        <div className="text-right">
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase">Order Hari Ini</p>
-                                            <p className="text-sm font-bold text-gray-700">{c.total_order_today || 0}</p>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] text-gray-400 font-bold uppercase">Omzet</p>
-                                            <p className="text-sm font-bold text-orange-600">{formatRupiah(c.revenue_today || 0)}</p>
-                                        </div>
-                                    </div>
-
                                     {/* Actions */}
                                     <div className="flex gap-2">
                                         <button 
