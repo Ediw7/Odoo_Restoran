@@ -15,7 +15,8 @@ export default function Cabang() {
     const [showUserForm, setShowUserForm] = useState(false);
     const [editingUser, setEditingUser] = useState(null);
     const [userFormData, setUserFormData] = useState({
-        name: '', login: '', password: '', role: 'cashier'
+        name: '', login: '', password: '', role: 'cashier',
+        branchName: '' // Added for rename
     });
 
     useEffect(() => {
@@ -82,29 +83,61 @@ export default function Cabang() {
     const handleOpenUserForm = (user = null) => {
         if (user) {
             setEditingUser(user);
-            setUserFormData({ name: user.name, login: user.login, password: '', role: user.role });
+            setUserFormData({ 
+                name: user.name, 
+                login: user.login, 
+                password: '', 
+                role: user.role,
+                branchName: selectedCabang?.name || ''
+            });
         } else {
             setEditingUser(null);
-            setUserFormData({ name: '', login: '', password: '', role: 'cashier' });
+            setUserFormData({ 
+                name: '', 
+                login: '', 
+                password: '', 
+                role: 'cashier',
+                branchName: selectedCabang?.name || ''
+            });
         }
         setShowUserForm(true);
     };
 
     const handleUserSubmit = async (e) => {
         e.preventDefault();
-        const payload = {
-            action: editingUser ? 'update' : 'create',
-            cabang_id: selectedCabang.id,
-            ...userFormData
-        };
-        if (editingUser) payload.id = editingUser.id;
-        
-        const res = await api.manageUser(payload);
-        if (res.status === 'success') {
-            toast.success("Data user berhasil disimpan!");
-            setShowUserForm(false);
-            fetchData();
-        } else toast.error(res.message);
+        setIsSubmitting(true);
+        try {
+            // 1. Rename Branch if changed
+            if (userFormData.branchName !== selectedCabang.name) {
+                await api.manageCabang({
+                    action: 'update',
+                    id: selectedCabang.id,
+                    name: userFormData.branchName
+                });
+            }
+
+            // 2. Update User
+            const payload = {
+                action: editingUser ? 'update' : 'create',
+                cabang_id: selectedCabang.id,
+                name: userFormData.name,
+                login: userFormData.login,
+                password: userFormData.password,
+                role: userFormData.role
+            };
+            if (editingUser) payload.id = editingUser.id;
+            
+            const res = await api.manageUser(payload);
+            if (res.status === 'success') {
+                toast.success("Data berhasil diperbarui!");
+                setShowUserForm(false);
+                fetchData();
+            } else toast.error(res.message);
+        } catch (err) {
+            toast.error("Gagal memperbarui data");
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     const handleDeleteUser = async (user) => {
@@ -297,11 +330,16 @@ export default function Cabang() {
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-fade-in">
                     <div className="bg-white rounded-[2rem] w-full max-w-sm shadow-2xl p-10 border border-gray-100 animate-scale-in">
                         <div className="mb-8">
-                            <h2 className="text-xl font-bold text-gray-800">Edit Akses</h2>
-                            <p className="text-sm text-orange-500 font-bold mt-1 uppercase tracking-wider">{selectedCabang.name}</p>
+                            <h2 className="text-xl font-bold text-gray-800">Edit Cabang & Akses</h2>
+                            <p className="text-sm text-gray-400 mt-1">Sesuaikan identitas outlet dan kredensial login.</p>
                         </div>
                         
                         <form onSubmit={handleUserSubmit} className="space-y-5">
+                            <div className="space-y-1.5 pb-4 border-b border-gray-50">
+                                <label className="text-[10px] font-bold text-orange-400 uppercase tracking-widest ml-1">Nama Cabang</label>
+                                <input type="text" value={userFormData.branchName} onChange={e => setUserFormData({...userFormData, branchName: e.target.value})} className="w-full px-4 py-3 bg-orange-50/50 border border-orange-100 rounded-xl outline-none focus:border-orange-500 text-sm font-bold text-gray-800" placeholder="Nama Cabang" required />
+                            </div>
+
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Nama Staff</label>
                                 <input type="text" value={userFormData.name} onChange={e => setUserFormData({...userFormData, name: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-orange-500 text-sm font-medium" placeholder="Nama" required />

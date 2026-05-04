@@ -147,12 +147,13 @@ class RestoranAPI_Master_3(RestoranBase):
             elif action == 'update':
                 cabang = Cabang.browse(data.get('id'))
                 if cabang.exists():
-                    cabang.write({
-                        'name': data.get('name'),
-                        'code': data.get('code'),
-                        'address': data.get('address', ''),
-                        'phone': data.get('phone', ''),
-                    })
+                    vals = {}
+                    if 'name' in data: vals['name'] = data.get('name')
+                    if 'code' in data: vals['code'] = data.get('code')
+                    if 'address' in data: vals['address'] = data.get('address', '')
+                    if 'phone' in data: vals['phone'] = data.get('phone', '')
+                    if vals:
+                        cabang.write(vals)
             elif action == 'toggle':
                 cabang = Cabang.browse(data.get('id'))
                 if cabang.exists():
