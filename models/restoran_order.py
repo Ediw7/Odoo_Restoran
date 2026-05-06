@@ -181,6 +181,9 @@ class ResUsers(models.Model):
     
     restoran_role = fields.Selection([
         ('owner', 'Owner / Super Admin'),
-        ('admin', 'Manager Cabang'),
-        ('cashier', 'Kasir Cabang')
+        ('admin', 'General Manager'),
+        ('manager', 'Manager Cabang'),
+        ('branch_device', 'Perangkat Cabang (Launcher)'),
+        ('cashier', 'Kasir Cabang'),
+        ('kitchen', 'Dapur Cabang')
     ], string='Role Restoran', default='cashier')

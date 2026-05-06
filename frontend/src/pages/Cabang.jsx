@@ -80,15 +80,16 @@ export default function Cabang() {
         setShowUserModal(true);
     };
 
-    const handleOpenUserForm = (user = null) => {
+    const handleOpenUserForm = (user = null, cabang = selectedCabang) => {
+        setSelectedCabang(cabang);
         if (user) {
             setEditingUser(user);
             setUserFormData({ 
                 name: user.name, 
                 login: user.login, 
                 password: '', 
-                role: user.role,
-                branchName: selectedCabang?.name || ''
+                role: user.role || 'cashier',
+                branchName: cabang?.name || ''
             });
         } else {
             setEditingUser(null);
@@ -97,7 +98,7 @@ export default function Cabang() {
                 login: '', 
                 password: '', 
                 role: 'cashier',
-                branchName: selectedCabang?.name || ''
+                branchName: cabang?.name || ''
             });
         }
         setShowUserForm(true);
@@ -175,10 +176,10 @@ export default function Cabang() {
             const resU = await api.manageUser({
                 action: 'create',
                 cabang_id: newBranchId,
-                name: createFormData.userName,
+                name: `Perangkat ${createFormData.branchName}`,
                 login: createFormData.login,
                 password: createFormData.password,
-                role: 'admin' // Default to Manager for new branch
+                role: 'branch_device' // Specific role for device launcher
             });
             
             if (resU.status !== 'success') throw new Error(resU.message);
@@ -228,7 +229,7 @@ export default function Cabang() {
                 {loading ? (
                     <div className="py-20 text-center text-gray-400 text-sm font-medium">Memuat data...</div>
                 ) : filteredCabangs.map((c) => {
-                    const branchUser = users.find(u => u.cabang_id === c.id);
+                    const branchUsers = users.filter(u => u.cabang_id === c.id);
                     return (
                         <div key={c.id} className="bg-white border border-gray-100 rounded-2xl p-6 hover:border-gray-200 transition-all group shadow-sm">
                             <div className="flex items-center justify-between">
@@ -252,29 +253,71 @@ export default function Cabang() {
                                                 {c.is_open ? 'Buka' : 'Tutup'}
                                             </span>
                                         </div>
-                                        <p className="text-xs text-gray-400 mt-0.5">
-                                            Login: <span className="text-gray-600 font-semibold">{branchUser ? branchUser.login : '- belum diatur -'}</span>
-                                        </p>
                                     </div>
                                 </div>
 
                                 <div className="flex items-center gap-6">
                                     {/* Actions */}
                                     <div className="flex gap-2">
-                                        <button 
-                                            onClick={() => {
-                                                setSelectedCabang(c);
-                                                handleOpenUserForm(branchUser);
-                                            }} 
-                                            className="px-4 py-2 flex items-center gap-2 rounded-xl border border-gray-100 text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all text-xs font-bold shadow-sm"
-                                        >
-                                            <span>✏️</span>
-                                            <span className="hidden sm:inline">Edit Akses</span>
-                                        </button>
-                                        <button onClick={() => handleDeleteCabang(c.id, c.name)} className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all" title="Hapus">
+                                        <button onClick={() => handleDeleteCabang(c.id, c.name)} className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all" title="Hapus Cabang">
                                             🗑️
                                         </button>
                                     </div>
+                                </div>
+                            </div>
+                            
+                            {/* Device Account Section */}
+                            <div className="mt-4 border-t border-gray-100 pt-4">
+                                <div className="flex justify-between items-center mb-2">
+                                    <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Akun Perangkat (Launcher Cabang)</h5>
+                                </div>
+                                <div className="bg-orange-50 border border-orange-100 p-3 rounded-xl flex justify-between items-center mb-4">
+                                    {users.find(u => u.cabang_id === c.id && (u.role === 'branch_device' || !u.role || u.role === 'branch')) ? (
+                                        (() => {
+                                            const devAcc = users.find(u => u.cabang_id === c.id && (u.role === 'branch_device' || !u.role || u.role === 'branch'));
+                                            return (
+                                                <>
+                                                    <div>
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="font-bold text-sm text-orange-800">{devAcc.name}</span>
+                                                            <span className="text-[9px] bg-white border border-orange-200 text-orange-500 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Device Login</span>
+                                                        </div>
+                                                        <div className="text-xs text-orange-600 mt-0.5">{devAcc.login}</div>
+                                                    </div>
+                                                    <div className="flex gap-1">
+                                                        <button onClick={() => handleOpenUserForm(devAcc, c)} className="p-2 text-orange-400 hover:text-orange-600 transition-colors" title="Edit">✏️</button>
+                                                    </div>
+                                                </>
+                                            );
+                                        })()
+                                    ) : (
+                                        <div className="text-xs text-orange-600 font-medium">Belum ada akun perangkat. Silakan tambah akun dengan role "Device Launcher".</div>
+                                    )}
+                                </div>
+
+                                <div className="flex justify-between items-center mb-3">
+                                    <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Akun Staff Karyawan ({branchUsers.filter(u => u.role !== 'branch_device').length})</h5>
+                                    <button onClick={() => handleOpenUserForm(null, c)} className="text-xs text-orange-500 font-bold hover:text-orange-600 bg-orange-50 px-3 py-1.5 rounded-lg transition-colors">+ Tambah Staff</button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                    {branchUsers.filter(u => u.role !== 'branch_device' && u.role !== 'branch').map(bu => (
+                                        <div key={bu.id} className="flex justify-between items-center bg-gray-50 border border-gray-100 p-3 rounded-xl">
+                                            <div>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-bold text-sm text-gray-800">{bu.name}</span>
+                                                    <span className="text-[9px] bg-white border border-gray-200 text-gray-500 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">{bu.role}</span>
+                                                </div>
+                                                <div className="text-xs text-gray-400 mt-0.5">{bu.login}</div>
+                                            </div>
+                                            <div className="flex gap-1">
+                                                <button onClick={() => handleOpenUserForm(bu, c)} className="p-2 text-gray-400 hover:text-orange-500 transition-colors" title="Edit">✏️</button>
+                                                <button onClick={() => handleDeleteUser(bu)} className="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Hapus">🗑️</button>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {branchUsers.filter(u => u.role !== 'branch_device' && u.role !== 'branch').length === 0 && (
+                                        <div className="text-xs text-gray-400 italic py-2">Belum ada staf terdaftar di cabang ini.</div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -300,14 +343,10 @@ export default function Cabang() {
                                 <input type="text" value={createFormData.branchName} onChange={e => setCreateFormData({...createFormData, branchName: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-orange-500 text-sm font-medium" placeholder="Contoh: Cabang Jakarta" required />
                             </div>
                             <div className="pt-4 border-t border-gray-100 space-y-4">
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-orange-400 uppercase tracking-widest ml-1">Nama Karyawan/Kasir</label>
-                                    <input type="text" value={createFormData.userName} onChange={e => setCreateFormData({...createFormData, userName: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-orange-500 text-sm font-medium" placeholder="Nama lengkap" required />
-                                </div>
-                                <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-orange-400 uppercase tracking-widest ml-1">ID Login (Email/Username)</label>
-                                    <input type="text" value={createFormData.login} onChange={e => setCreateFormData({...createFormData, login: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-orange-500 text-sm font-medium" placeholder="login@email.com" required />
-                                </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Email Perangkat (Contoh: wnsemarang@gmail.com)</label>
+                                <input type="text" value={createFormData.login} onChange={e => setCreateFormData({...createFormData, login: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-orange-500 text-sm font-medium" placeholder="login@email.com" required />
+                            </div>
                                 <div className="space-y-1.5">
                                     <label className="text-[10px] font-bold text-orange-400 uppercase tracking-widest ml-1">Password</label>
                                     <input type="password" value={createFormData.password} onChange={e => setCreateFormData({...createFormData, password: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-orange-500 text-sm font-medium" placeholder="••••••••" required />
@@ -347,6 +386,16 @@ export default function Cabang() {
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Login / Email</label>
                                 <input type="text" value={userFormData.login} onChange={e => setUserFormData({...userFormData, login: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-orange-500 text-sm font-medium" placeholder="email@login.com" required />
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Role Akun</label>
+                                <select value={userFormData.role} onChange={e => setUserFormData({...userFormData, role: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-orange-500 text-sm font-medium">
+                                    <option value="cashier">Kasir (POS)</option>
+                                    <option value="kitchen">Dapur (KDS)</option>
+                                    <option value="manager">Manager Cabang (Gudang & Dash)</option>
+                                    <option value="branch_device">Device Launcher (Hanya Layar Awal)</option>
+                                    <option value="admin">Owner / General Manager</option>
+                                </select>
                             </div>
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Password {editingUser && '(Isi untuk ganti)'}</label>
