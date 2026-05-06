@@ -42,71 +42,83 @@ export default function Dapur({ cabangId }) {
     const kitchenOrders = orders.filter(o => ['confirmed', 'preparing', 'ready'].includes(o.state)).reverse();
 
     return (
-        <div className="animate-fade-in">
-            <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-bold text-gray-800">Dapur (Kitchen Display)</h2>
-                <button onClick={fetchOrders} className="text-sm px-3 py-1.5 bg-white border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 flex items-center gap-2">
-                    <span>↻</span> Segarkan
-                </button>
-            </div>
-
+        <div className="animate-fade-in pb-10">
             {kitchenOrders.length === 0 ? (
-                <div className="bg-white border rounded-xl py-20 text-center shadow-sm">
-                    <div className="text-4xl mb-3">🍳</div>
-                    <p className="text-gray-500 font-medium">Belum ada pesanan masuk</p>
+                <div className="flex flex-col items-center justify-center h-[60vh] opacity-60">
+                    <span className="text-4xl mb-4 grayscale">🍽️</span>
+                    <h3 className="text-lg font-semibold text-gray-700">Tidak Ada Antrean</h3>
+                    <p className="text-sm text-gray-400 mt-1">Dapur sedang santai. Belum ada pesanan.</p>
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                    {kitchenOrders.map(o => (
-                        <div key={o.id} className="bg-white border border-gray-100 rounded-xl overflow-hidden shadow-sm flex flex-col transition-all">
-                            <div className="px-3 py-2.5 bg-gray-50/80 flex justify-between items-center border-b border-gray-100">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    {kitchenOrders.map(o => {
+                        const isConfirmed = o.state === 'confirmed';
+                        const isPreparing = o.state === 'preparing';
+                        const isReady = o.state === 'ready';
+                        
+                        let accentColor = isConfirmed ? 'border-orange-400' : isPreparing ? 'border-blue-400' : 'border-green-400';
+                        let buttonClass = isConfirmed ? 'bg-orange-500 hover:bg-orange-600' : isPreparing ? 'bg-blue-500 hover:bg-blue-600' : 'bg-green-500';
+
+                        return (
+                        <div key={o.id} className="bg-white rounded-xl shadow-sm border border-gray-200 flex flex-col h-full overflow-hidden">
+                            {/* Header */}
+                            <div className="p-4 flex justify-between items-start border-b border-gray-100">
                                 <div>
-                                    <div className="text-sm font-black text-gray-800 leading-tight">{o.table_number ? `Meja ${o.table_number}` : (o.order_type === 'delivery' ? 'Delivery' : 'Take Away')}</div>
-                                    <div className="text-[10px] font-bold text-orange-600 uppercase tracking-wide mt-0.5">{o.customer_name || 'Walk-in'}</div>
+                                    <div className="text-lg font-bold text-gray-800">
+                                        {o.table_number ? `Meja ${o.table_number}` : (o.order_type === 'delivery' ? 'Delivery' : 'Take Away')}
+                                    </div>
+                                    <div className="text-xs font-medium text-gray-500 mt-1 flex items-center gap-2">
+                                        <span className="text-gray-700">{o.customer_name || 'Walk-in'}</span>
+                                        <span className="text-gray-300">•</span>
+                                        <span>{formatTime(o.order_date)}</span>
+                                    </div>
                                 </div>
-                                <div className="text-right flex flex-col items-end">
-                                    <span className={`px-2 py-0.5 text-[9px] uppercase font-bold tracking-widest rounded ${getStatusColor(o.state)}`}>
-                                        {getStatusLabel(o.state)}
-                                    </span>
-                                    <div className="text-[9px] text-gray-400 font-medium mt-1">{formatTime(o.order_date)}</div>
-                                </div>
+                                <span className={`px-2 py-1 text-[10px] font-bold uppercase tracking-wider rounded border ${getStatusColor(o.state)}`}>
+                                    {getStatusLabel(o.state)}
+                                </span>
                             </div>
 
-                            <div className="p-3 flex-1 overflow-y-auto">
-                                <ul className="space-y-1.5">
+                            {/* Items */}
+                            <div className="p-4 flex-1">
+                                <ul className="space-y-3">
                                     {o.lines.map(l => (
-                                        <li key={l.id} className="flex flex-col">
-                                            <div className="flex justify-between items-start text-xs">
-                                                <div className="flex gap-1.5">
-                                                    <span className="font-bold text-orange-500">{l.qty}x</span>
-                                                    <span className="font-semibold text-gray-700">{l.menu.name}</span>
-                                                </div>
+                                        <li key={l.id} className="flex gap-3 items-start border-b border-gray-50 pb-3 last:border-0 last:pb-0">
+                                            <div className="text-sm font-semibold text-gray-600 min-w-[1.5rem]">
+                                                {l.qty}x
                                             </div>
-                                            {l.note && <div className="text-[10px] text-gray-400 italic ml-4 mt-0.5">"{l.note}"</div>}
+                                            <div className="flex-1">
+                                                <div className="text-sm font-medium text-gray-800">{l.menu.name}</div>
+                                                {l.note && (
+                                                    <div className="text-[11px] text-orange-600 font-medium italic mt-1 bg-orange-50/50 px-2 py-1 rounded">
+                                                        "{l.note}"
+                                                    </div>
+                                                )}
+                                            </div>
                                         </li>
                                     ))}
                                 </ul>
                             </div>
 
-                            <div className="p-2 border-t border-gray-50 bg-white shrink-0">
-                                {o.state === 'confirmed' && (
-                                    <button onClick={() => handleUpdateStatus(o.id, 'prepare')} className="w-full py-2 bg-yellow-500 hover:bg-yellow-600 text-white rounded-lg font-bold text-[10px] shadow-sm uppercase tracking-widest transition-colors">
-                                        Masak Pesanan
+                            {/* Action */}
+                            <div className="p-4 pt-0">
+                                {isConfirmed && (
+                                    <button onClick={() => handleUpdateStatus(o.id, 'prepare')} className={`w-full py-2.5 ${buttonClass} text-white rounded-lg font-semibold text-xs tracking-wide transition-colors`}>
+                                        Mulai Masak
                                     </button>
                                 )}
-                                {o.state === 'preparing' && (
-                                    <button onClick={() => handleUpdateStatus(o.id, 'ready')} className="w-full py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg font-bold text-[10px] shadow-sm uppercase tracking-widest transition-colors">
-                                        Siap Saji
+                                {isPreparing && (
+                                    <button onClick={() => handleUpdateStatus(o.id, 'ready')} className={`w-full py-2.5 ${buttonClass} text-white rounded-lg font-semibold text-xs tracking-wide transition-colors`}>
+                                        Selesai & Siap Saji
                                     </button>
                                 )}
-                                {o.state === 'ready' && (
-                                    <div className="w-full py-2 bg-gray-50 text-gray-400 rounded-lg font-bold text-[10px] text-center border border-dashed border-gray-200 uppercase tracking-widest">
-                                        Menunggu Kasir
+                                {isReady && (
+                                    <div className="w-full py-2.5 bg-gray-50 text-gray-500 rounded-lg font-medium text-xs text-center border border-dashed border-gray-200">
+                                        Menunggu Diantar
                                     </div>
                                 )}
                             </div>
                         </div>
-                    ))}
+                    )})}
                 </div>
             )}
         </div>
