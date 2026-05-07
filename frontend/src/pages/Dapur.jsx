@@ -113,7 +113,7 @@ export default function Dapur({ cabangId }) {
                                 )}
                                 {isReady && (
                                     <div className="w-full py-2.5 bg-gray-50 text-gray-500 rounded-lg font-medium text-xs text-center border border-dashed border-gray-200">
-                                        Menunggu Diantar
+                                        Menunggu Pembayaran
                                     </div>
                                 )}
                             </div>

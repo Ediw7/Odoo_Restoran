@@ -104,15 +104,25 @@ export default function App() {
       const res = await api.login(loginForm.username, loginForm.password);
       if (res?.status === 'success') {
         const data = res.data;
-        // Optionally verify role matches loginModalRole, but we let them in anyway if credentials are valid
+        
+        // Strict Role Validation
+        let normalizedRole = data.role === 'kasir' ? 'cashier' : (data.role === 'dapur' ? 'kitchen' : data.role);
+        let expectedRole = loginModalRole === 'Kasir' ? 'cashier' : (loginModalRole === 'Dapur' ? 'kitchen' : 'manager');
+        
+        if (normalizedRole !== expectedRole && normalizedRole !== 'manager') {
+            setLoginError(`Akses Ditolak: Akun ini adalah ${data.role.toUpperCase()}, bukan ${loginModalRole.toUpperCase()}.`);
+            setIsLoggingIn(false);
+            return;
+        }
+
         localStorage.setItem("restoran_user", JSON.stringify(data));
         setUserData(data);
         setIsLoggedIn(true);
         setActiveCabangId(data.cabang_id);
         
-        if (data.role === 'cashier' || data.role === 'kasir') setActivePage('pos');
-        else if (data.role === 'kitchen' || data.role === 'dapur') setActivePage('dapur');
-        else if (data.role === 'manager') setActivePage('dashboard');
+        if (normalizedRole === 'cashier') setActivePage('pos');
+        else if (normalizedRole === 'kitchen') setActivePage('dapur');
+        else if (normalizedRole === 'manager') setActivePage('dashboard');
         else setActivePage('pos');
         
         setShowLoginModal(false);
