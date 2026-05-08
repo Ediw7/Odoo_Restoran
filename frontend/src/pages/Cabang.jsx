@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { api, formatRupiah } from "../api";
 import { useToast } from "../hooks/useToast";
 
-export default function Cabang() {
+export default function Cabang({ onOpenManagerDashboard }) {
     const [cabangs, setCabangs] = useState([]);
     const [users, setUsers] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -172,17 +172,21 @@ export default function Cabang() {
             
             const newBranchId = resC.data.id;
             
-            // 2. Create User for that Branch
-            const resU = await api.manageUser({
-                action: 'create',
-                cabang_id: newBranchId,
-                name: `Perangkat ${createFormData.branchName}`,
-                login: createFormData.login,
-                password: createFormData.password,
-                role: 'branch_device' // Specific role for device launcher
-            });
-            
-            if (resU.status !== 'success') throw new Error(resU.message);
+            // 2. Create Users for that Branch
+            const roles = ['cashier', 'kitchen', 'manager'];
+            const prefix = createFormData.branchName.toLowerCase().replace(/[^a-z0-9]/g, '');
+            for (const r of roles) {
+                let namePrefix = r === 'cashier' ? 'Kasir' : (r === 'kitchen' ? 'Dapur' : 'Manajer');
+                let loginPrefix = r === 'cashier' ? 'kasir' : (r === 'kitchen' ? 'dapur' : 'manajer');
+                await api.manageUser({
+                    action: 'create',
+                    cabang_id: newBranchId,
+                    name: `${namePrefix} ${createFormData.branchName}`,
+                    login: `${loginPrefix}${prefix}@gmail.com`,
+                    password: `${prefix}123`,
+                    role: r
+                });
+            }
             
             toast.success("Cabang & Akun berhasil dibuat!");
             setShowCreateModal(false);
@@ -258,43 +262,18 @@ export default function Cabang() {
 
                                 <div className="flex items-center gap-6">
                                     {/* Actions */}
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-2 items-center">
+                                        <button onClick={() => onOpenManagerDashboard && onOpenManagerDashboard(c.id)} className="text-xs bg-orange-50 hover:bg-orange-100 text-orange-600 font-bold px-4 py-2 rounded-xl transition-colors">
+                                            Lihat Dashboard
+                                        </button>
                                         <button onClick={() => handleDeleteCabang(c.id, c.name)} className="w-10 h-10 flex items-center justify-center rounded-xl text-gray-300 hover:text-red-500 hover:bg-red-50 transition-all" title="Hapus Cabang">
                                             🗑️
                                         </button>
                                     </div>
                                 </div>
                             </div>
-                            
-                            {/* Device Account Section */}
+                            {/* Staff Accounts Section */}
                             <div className="mt-4 border-t border-gray-100 pt-4">
-                                <div className="flex justify-between items-center mb-2">
-                                    <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Akun Perangkat (Launcher Cabang)</h5>
-                                </div>
-                                <div className="bg-orange-50 border border-orange-100 p-3 rounded-xl flex justify-between items-center mb-4">
-                                    {users.find(u => u.cabang_id === c.id && (u.role === 'branch_device' || !u.role || u.role === 'branch')) ? (
-                                        (() => {
-                                            const devAcc = users.find(u => u.cabang_id === c.id && (u.role === 'branch_device' || !u.role || u.role === 'branch'));
-                                            return (
-                                                <>
-                                                    <div>
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="font-bold text-sm text-orange-800">{devAcc.name}</span>
-                                                            <span className="text-[9px] bg-white border border-orange-200 text-orange-500 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">Device Login</span>
-                                                        </div>
-                                                        <div className="text-xs text-orange-600 mt-0.5">{devAcc.login}</div>
-                                                    </div>
-                                                    <div className="flex gap-1">
-                                                        <button onClick={() => handleOpenUserForm(devAcc, c)} className="p-2 text-orange-400 hover:text-orange-600 transition-colors" title="Edit">✏️</button>
-                                                    </div>
-                                                </>
-                                            );
-                                        })()
-                                    ) : (
-                                        <div className="text-xs text-orange-600 font-medium">Belum ada akun perangkat. Silakan tambah akun dengan role "Device Launcher".</div>
-                                    )}
-                                </div>
-
                                 <div className="flex justify-between items-center mb-3">
                                     <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Akun Staff Karyawan ({branchUsers.filter(u => u.role !== 'branch_device').length})</h5>
                                     <button onClick={() => handleOpenUserForm(null, c)} className="text-xs text-orange-500 font-bold hover:text-orange-600 bg-orange-50 px-3 py-1.5 rounded-lg transition-colors">+ Tambah Staff</button>
@@ -341,15 +320,13 @@ export default function Cabang() {
                             <div className="space-y-1.5">
                                 <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Nama Cabang</label>
                                 <input type="text" value={createFormData.branchName} onChange={e => setCreateFormData({...createFormData, branchName: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-orange-500 text-sm font-medium" placeholder="Contoh: Cabang Jakarta" required />
-                            </div>
-                            <div className="pt-4 border-t border-gray-100 space-y-4">
-                            <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Email Perangkat (Contoh: wnsemarang@gmail.com)</label>
-                                <input type="text" value={createFormData.login} onChange={e => setCreateFormData({...createFormData, login: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-orange-500 text-sm font-medium" placeholder="login@email.com" required />
-                            </div>
                                 <div className="space-y-1.5">
-                                    <label className="text-[10px] font-bold text-orange-400 uppercase tracking-widest ml-1">Password</label>
-                                    <input type="password" value={createFormData.password} onChange={e => setCreateFormData({...createFormData, password: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-orange-500 text-sm font-medium" placeholder="••••••••" required />
+                                    <p className="text-[10px] font-bold text-orange-500 bg-orange-50 p-2 rounded-lg mt-2">
+                                        INFO: Sistem akan otomatis membuat 3 akun staf standar dengan format password default (nama_cabang+123).<br/><br/>
+                                        - kasir[namacabang]@gmail.com<br/>
+                                        - dapur[namacabang]@gmail.com<br/>
+                                        - manajer[namacabang]@gmail.com
+                                    </p>
                                 </div>
                             </div>
                             

@@ -24,15 +24,7 @@ export default function App() {
   const [time, setTime] = useState("--:--:--");
   const [cabangList, setCabangList] = useState([]);
   const [activeCabangId, setActiveCabangId] = useState("");
-  const [stationMode, setStationMode] = useState(null);
-  const [isDeviceLoggedIn, setIsDeviceLoggedIn] = useState(false);
-  const [deviceData, setDeviceData] = useState(null);
-  
-  const [showLoginModal, setShowLoginModal] = useState(false);
-  const [loginModalRole, setLoginModalRole] = useState("");
-  const [loginForm, setLoginForm] = useState({ username: "", password: "" });
-  const [loginError, setLoginError] = useState("");
-  const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [adminViewMode, setAdminViewMode] = useState("global");
 
 
   useEffect(() => {
@@ -43,13 +35,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    const savedDevice = localStorage.getItem("restoran_device");
     const savedUser = localStorage.getItem("restoran_user");
-    
-    if (savedDevice) {
-      setDeviceData(JSON.parse(savedDevice));
-      setIsDeviceLoggedIn(true);
-    }
     
     if (savedUser) {
       const parsed = JSON.parse(savedUser);
@@ -57,23 +43,23 @@ export default function App() {
       setIsLoggedIn(true);
       setActiveCabangId(parsed.cabang_id);
       
-      if (parsed.role === 'cashier' || parsed.role === 'kasir') {
+      let normalizedRole = parsed.role === 'kasir' ? 'cashier' : (parsed.role === 'dapur' ? 'kitchen' : parsed.role);
+      
+      if (normalizedRole === 'cashier') {
         setActivePage("pos");
-      } else if (parsed.role === 'kitchen' || parsed.role === 'dapur') {
+      } else if (normalizedRole === 'kitchen') {
         setActivePage("dapur");
-      } else if (parsed.role === 'manager') {
-        setActivePage("dashboard");
-      } else if (parsed.role === 'owner' || parsed.role === 'admin') {
+      } else {
         setActivePage("dashboard");
       }
     }
   }, []);
 
   useEffect(() => {
-    if (isLoggedIn || isDeviceLoggedIn) {
+    if (isLoggedIn) {
       fetchMetadata();
     }
-  }, [isLoggedIn, isDeviceLoggedIn, activeCabangId]);
+  }, [isLoggedIn, activeCabangId]);
 
   const fetchMetadata = async () => {
     const cs = await api.getCabang();
@@ -86,57 +72,22 @@ export default function App() {
     setUserData(null);
     setActivePage("pos");
   };
-  
-  const handleDeviceLogout = () => {
-    localStorage.removeItem("restoran_device");
-    localStorage.removeItem("restoran_user");
-    setIsDeviceLoggedIn(false);
-    setDeviceData(null);
-    setIsLoggedIn(false);
-    setUserData(null);
-  };
-
-  const handleSubLogin = async (e) => {
-    e.preventDefault();
-    setLoginError("");
-    setIsLoggingIn(true);
-    try {
-      const res = await api.login(loginForm.username, loginForm.password);
-      if (res?.status === 'success') {
-        const data = res.data;
-        
-        // Strict Role Validation
-        let normalizedRole = data.role === 'kasir' ? 'cashier' : (data.role === 'dapur' ? 'kitchen' : data.role);
-        let expectedRole = loginModalRole === 'Kasir' ? 'cashier' : (loginModalRole === 'Dapur' ? 'kitchen' : 'manager');
-        
-        if (normalizedRole !== expectedRole && normalizedRole !== 'manager') {
-            setLoginError(`Akses Ditolak: Akun ini adalah ${data.role.toUpperCase()}, bukan ${loginModalRole.toUpperCase()}.`);
-            setIsLoggingIn(false);
-            return;
-        }
-
-        localStorage.setItem("restoran_user", JSON.stringify(data));
-        setUserData(data);
-        setIsLoggedIn(true);
-        setActiveCabangId(data.cabang_id);
-        
-        if (normalizedRole === 'cashier') setActivePage('pos');
-        else if (normalizedRole === 'kitchen') setActivePage('dapur');
-        else if (normalizedRole === 'manager') setActivePage('dashboard');
-        else setActivePage('pos');
-        
-        setShowLoginModal(false);
-        setLoginForm({username: '', password: ''});
-      } else {
-        setLoginError(res?.message || "Username / Password salah");
-      }
-    } catch {
-      setLoginError("Gagal terhubung ke server");
-    }
-    setIsLoggingIn(false);
-  };
 
   const getNavItems = (role) => {
+    if ((role === 'owner' || role === 'admin') && adminViewMode === 'manager') {
+        return [
+          { id: "dashboard", label: "Dashboard Cabang" },
+          { id: "pos", label: "Kasir (POS)" },
+          { id: "dapur", label: "Layar Dapur (KDS)" },
+          { id: "inventory", label: "Stok Etalase Makanan" },
+          { id: "bahan_baku", label: "Gudang Bahan Mentah" },
+          { id: "purchasing", label: "Pembelian & Supplier" },
+          { id: "wastage", label: "Barang Rusak / Wastage" },
+          { id: "orders", label: "Riwayat Transaksi" },
+          { id: "back_global", label: "⬅️ Kembali Global" }
+        ];
+    }
+
     switch (role) {
       case 'owner':
       case 'admin':
@@ -179,124 +130,28 @@ export default function App() {
   const navItems = getNavItems(userData?.role);
 
   const pageTitles = {
-    dashboard: 'Dashboard', pos: 'Kasir', orders: 'Riwayat Transaksi harian', dapur: 'Dapur (Kitchen Display)',
+    dashboard: 'Dashboard Global', dashboard_cabang: 'Dashboard Manajer Cabang', pos: 'Kasir', orders: 'Riwayat Transaksi harian', dapur: 'Dapur (Kitchen Display)',
     inventory: 'Stok Etalase', bahan_baku: 'Bahan Baku Mentah', menu: 'Kelola Menu', report: 'Laporan Keuangan',
     wastage: 'Barang Rusak', purchasing: 'Pembelian & Supplier', pelanggan: 'Pelanggan & Loyalty', cabang: 'Manajemen Cabang'
   };
 
-  if (!isDeviceLoggedIn && !isLoggedIn) {
+  if (!isLoggedIn) {
     return <Login onLoginSuccess={(data) => {
-      if (data.role === 'owner' || data.role === 'admin') {
-        // Admin goes straight in
-        localStorage.setItem("restoran_user", JSON.stringify(data));
-        setUserData(data);
-        setIsLoggedIn(true);
-        setActiveCabangId(data.cabang_id);
-        setActivePage('dashboard');
+      localStorage.setItem("restoran_user", JSON.stringify(data));
+      setUserData(data);
+      setIsLoggedIn(true);
+      setActiveCabangId(data.cabang_id);
+      
+      let normalizedRole = data.role === 'kasir' ? 'cashier' : (data.role === 'dapur' ? 'kitchen' : data.role);
+      if (normalizedRole === 'cashier') {
+        setActivePage("pos");
+      } else if (normalizedRole === 'kitchen') {
+        setActivePage("dapur");
       } else {
-        // Branch logs into Launcher
-        localStorage.setItem("restoran_device", JSON.stringify(data));
-        setDeviceData(data);
-        setIsDeviceLoggedIn(true);
+        setActivePage("dashboard");
       }
     }} />;
   }
-
-  // --- RENDERING LAUNCHER (If Device logged in but no specific staff logged in) ---
-  if (isDeviceLoggedIn && !isLoggedIn && userData?.role !== 'owner' && userData?.role !== 'admin') {
-    return (
-      <div className="min-h-screen w-full bg-gray-50 flex items-center justify-center p-6">
-        <div className="w-full max-w-4xl">
-
-          {/* Header */}
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-800">Warung Nusantara</h1>
-              <p className="text-sm text-gray-400 mt-0.5">Pilih stasiun kerja — {deviceData?.cabang_name || "Pusat"}</p>
-            </div>
-            <button onClick={handleDeviceLogout}
-              className="text-xs font-semibold text-gray-400 hover:text-red-500 bg-white border border-gray-200 px-4 py-2 rounded-lg transition-colors">
-              Logout Device
-            </button>
-          </div>
-
-          {/* Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-3xl mx-auto">
-
-            <button onClick={() => { setLoginModalRole("Kasir"); setShowLoginModal(true); }}
-              className="bg-white border border-gray-100 rounded-2xl p-6 text-left shadow-sm hover:shadow-md hover:border-orange-200 transition-all group">
-              <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center mb-4">
-                <span className="text-sm font-black text-orange-500">POS</span>
-              </div>
-              <h3 className="text-base font-bold text-gray-800 mb-1">Kasir (POS)</h3>
-              <p className="text-xs text-gray-400 leading-relaxed">Input pesanan, bayar & cetak struk.</p>
-              <div className="mt-4 text-xs font-semibold text-orange-400 group-hover:text-orange-500 transition-colors">Login Kasir &rarr;</div>
-            </button>
-
-            <button onClick={() => { setLoginModalRole("Dapur"); setShowLoginModal(true); }}
-              className="bg-white border border-gray-100 rounded-2xl p-6 text-left shadow-sm hover:shadow-md hover:border-orange-200 transition-all group">
-              <div className="w-10 h-10 bg-orange-50 rounded-xl flex items-center justify-center mb-4">
-                <span className="text-sm font-black text-orange-500">KDS</span>
-              </div>
-              <h3 className="text-base font-bold text-gray-800 mb-1">Layar Dapur</h3>
-              <p className="text-xs text-gray-400 leading-relaxed">Antrean dan status masak real-time.</p>
-              <div className="mt-4 text-xs font-semibold text-orange-400 group-hover:text-orange-500 transition-colors">Login Dapur &rarr;</div>
-            </button>
-
-            <button onClick={() => { setLoginModalRole("Manager"); setShowLoginModal(true); }}
-              className="bg-orange-500 hover:bg-orange-600 border border-orange-500 rounded-2xl p-6 text-left shadow-sm hover:shadow-md transition-all group">
-              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mb-4">
-                <span className="text-xs font-black text-white">MGR</span>
-              </div>
-              <h3 className="text-base font-bold text-white mb-1">Manajer / Gudang</h3>
-              <p className="text-xs text-orange-100 leading-relaxed">Dashboard, stok, pembelian, dsb.</p>
-              <div className="mt-4 text-xs font-semibold text-white/80 group-hover:text-white transition-colors">Login Manajer &rarr;</div>
-            </button>
-          </div>
-
-          <div className="mt-8 text-center text-[10px] text-gray-300 uppercase tracking-widest font-semibold">
-            Warung Nusantara ERP &bull; Multi-Cabang
-          </div>
-        </div>
-
-        {/* Login Sub-Modal */}
-        {showLoginModal && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setShowLoginModal(false)}>
-            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 animate-in zoom-in duration-200"
-              onClick={e => e.stopPropagation()}>
-              <div className="text-center mb-6">
-                <h3 className="text-xl font-bold text-gray-800">Login {loginModalRole}</h3>
-                <p className="text-xs text-gray-400 mt-1">Masukkan kredensial untuk role {loginModalRole}</p>
-              </div>
-
-              <form onSubmit={handleSubLogin} className="space-y-4">
-                 {loginError && (
-                    <div className="text-xs bg-red-50 text-red-500 p-2 rounded-lg text-center font-bold">{loginError}</div>
-                 )}
-                 <div>
-                    <label className="text-xs font-bold text-gray-500 mb-1 block">Username / Email</label>
-                    <input type="text" required value={loginForm.username} onChange={e=>setLoginForm({...loginForm, username: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-500" placeholder={`akun_${loginModalRole.toLowerCase()}`} />
-                 </div>
-                 <div>
-                    <label className="text-xs font-bold text-gray-500 mb-1 block">Password</label>
-                    <input type="password" required value={loginForm.password} onChange={e=>setLoginForm({...loginForm, password: e.target.value})} className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-500" placeholder="••••••" />
-                 </div>
-                 
-                 <div className="flex gap-2 pt-2">
-                    <button type="button" onClick={() => setShowLoginModal(false)} className="flex-1 py-3 bg-gray-100 text-gray-500 font-bold rounded-xl text-sm">Batal</button>
-                    <button type="submit" disabled={isLoggingIn} className="flex-1 py-3 bg-orange-500 text-white font-bold rounded-xl text-sm shadow-md shadow-orange-500/20">{isLoggingIn ? "Cek..." : "Masuk"}</button>
-                 </div>
-              </form>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-  // Override nav items based on chosen station
-
-
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-gray-50 text-gray-800">
@@ -310,8 +165,17 @@ export default function App() {
         <nav className="flex-1 overflow-y-auto p-2 space-y-0.5">
           {navItems.map((item) => (
             <button key={item.id}
-              onClick={() => { setActivePage(item.id); setSidebarOpen(false); }}
-              className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${activePage === item.id ? "bg-orange-500 text-white shadow-sm" : "text-gray-500 hover:bg-gray-100"}`}>
+              onClick={() => { 
+                if (item.id === 'back_global') {
+                    setAdminViewMode('global');
+                    setActivePage('cabang');
+                    setSidebarOpen(false);
+                    return;
+                }
+                setActivePage(item.id); 
+                setSidebarOpen(false); 
+              }}
+              className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${item.id === 'back_global' ? 'text-red-500 hover:bg-red-50 font-bold border border-red-100 mt-4' : (activePage === item.id ? "bg-orange-500 text-white shadow-sm" : "text-gray-500 hover:bg-gray-100")}`}>
               <span>{item.label}</span>
               {item.badge > 0 && (
                 <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${activePage === item.id ? "bg-white/30 text-white" : "bg-gray-100 text-gray-500"}`}>{item.badge}</span>
@@ -348,9 +212,14 @@ export default function App() {
         </header>
 
         <div className="flex-1 overflow-y-auto p-5">
-          {activePage === "dashboard" && (userData?.role === 'owner' || userData?.role === 'admin') && <DashboardAdmin cabangId={activeCabangId} />}
-          {activePage === "dashboard" && userData?.role === 'manager' && <DashboardCabang cabangId={activeCabangId} />}
-          {activePage === "cabang" && <Cabang />}
+          {activePage === "dashboard" && (userData?.role === 'owner' || userData?.role === 'admin') && adminViewMode === 'global' && <DashboardAdmin cabangId={activeCabangId} />}
+          {activePage === "dashboard" && (userData?.role === 'manager' || ((userData?.role === 'owner' || userData?.role === 'admin') && adminViewMode === 'manager')) && <DashboardCabang cabangId={activeCabangId} />}
+          {activePage === "dashboard_cabang" && <DashboardCabang cabangId={activeCabangId} />}
+          {activePage === "cabang" && <Cabang onOpenManagerDashboard={(id) => { 
+              setActiveCabangId(id); 
+              setAdminViewMode("manager");
+              setActivePage("dashboard"); 
+          }} />}
           {activePage === "pos" && <POS cabangList={cabangList} activeCabangId={activeCabangId} />}
           {activePage === "dapur" && <Dapur cabangId={activeCabangId} />}
           {activePage === "orders" && <Orders cabangId={activeCabangId} userRole={userData?.role} />}
