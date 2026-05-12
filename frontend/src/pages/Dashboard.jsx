@@ -10,9 +10,18 @@ export default function Dashboard({ onNavigate }) {
     const [chartData, setChartData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [period, setPeriod] = useState('today');
+    const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
     const [chartDays, setChartDays] = useState(7);
 
-    useEffect(() => { fetchAll(); }, [period, chartDays]);
+    useEffect(() => { fetchAll(); }, [period, chartDays, filterDate]);
+
+    const handlePeriodChange = (p) => {
+        setPeriod(p);
+        const now = new Date();
+        if (p === 'today' || p === 'week') setFilterDate(now.toISOString().split('T')[0]);
+        else if (p === 'month') setFilterDate(now.toISOString().slice(0, 7));
+        else if (p === 'year') setFilterDate(now.getFullYear().toString());
+    };
 
     const fetchAll = async () => {
         setLoading(true);
@@ -47,30 +56,46 @@ export default function Dashboard({ onNavigate }) {
                     <h1 className="text-2xl font-bold text-gray-800 tracking-tight">Ringkasan Bisnis</h1>
                     <p className="text-sm text-gray-500 mt-1">Pantau performa seluruh cabang secara real-time.</p>
                 </div>
-                <div className="flex items-center gap-3">
-                    <div className="flex bg-gray-50 p-1 rounded-xl border border-gray-100 shadow-sm">
+                <div className="flex flex-wrap items-center gap-3 bg-white border border-gray-200 rounded-2xl p-2 shadow-sm">
+                    <div className="flex bg-gray-50 p-1 rounded-xl">
                         {[
                             { id: 'today', label: 'Hari Ini' },
                             { id: 'week', label: 'Minggu' },
                             { id: 'month', label: 'Bulan' },
                             { id: 'year', label: 'Tahun' },
                         ].map(p => (
-                            <button key={p.id} onClick={() => setPeriod(p.id)}
+                            <button key={p.id} onClick={() => handlePeriodChange(p.id)}
                                 className={`px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${period === p.id ? 'bg-white shadow-sm text-orange-600' : 'text-gray-400 hover:text-gray-600'}`}>
                                 {p.label}
                             </button>
                         ))}
                     </div>
-                    <button onClick={fetchAll} className="text-xs text-gray-400 hover:text-orange-500 transition-all bg-white border border-gray-100 px-3 py-2 rounded-xl shadow-sm">↻</button>
+                    <div className="h-6 w-[1px] bg-gray-200 hidden lg:block"></div>
+                    <div className="flex items-center gap-2">
+                        {(period === 'today' || period === 'week') && (
+                            <input type="date" value={filterDate} onChange={e => setFilterDate(e.target.value)}
+                                className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-orange-400" />
+                        )}
+                        {period === 'month' && (
+                            <input type="month" value={filterDate} onChange={e => setFilterDate(e.target.value)}
+                                className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-orange-400" />
+                        )}
+                        {period === 'year' && (
+                            <select value={filterDate} onChange={e => setFilterDate(e.target.value)}
+                                className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-orange-400">
+                                {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+                            </select>
+                        )}
+                    </div>
+                    <button onClick={fetchAll} className="text-xs text-gray-400 hover:text-orange-500 transition-all bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-xl">↻</button>
                 </div>
             </div>
 
             {/* Stats Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <StatCard title="Cabang Buka" val={`${data.cabang_buka} / ${data.total_cabang}`} icon="🏪" sub="outlet aktif" onClick={() => onNavigate && onNavigate('cabang')} />
-                <StatCard title="Total Order" val={data.global.total_orders} icon="📋" sub={`${period === 'today' ? 'hari ini' : period === 'week' ? 'minggu ini' : period === 'month' ? 'bulan ini' : 'tahun ini'}`} />
-                <StatCard title="Pendapatan" val={formatRupiah(data.global.total_revenue)} icon="💰" highlight onClick={() => onNavigate && onNavigate('report')} />
-                <StatCard title="Menu Tersedia" val={data.global.total_menu_available} icon="🍽️" sub="item aktif" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                <StatCard title="Cabang Aktif" val={`${data.cabang_buka} dari ${data.total_cabang} Cabang`} icon="🏪" sub="Outlet yang sedang buka" onClick={() => onNavigate && onNavigate('cabang')} />
+                <StatCard title="Jumlah Transaksi" val={`${data.global.total_orders} Pesanan`} icon="📋" sub={`Periode: ${period === 'today' ? 'Hari Ini' : period === 'week' ? 'Minggu Ini' : period === 'month' ? 'Bulan Ini' : 'Tahun Ini'}`} />
+                <StatCard title="Total Pendapatan" val={formatRupiah(data.global.total_revenue)} icon="💰" highlight sub={`Omset ${period === 'today' ? 'hari ini' : period === 'week' ? 'minggu ini' : period === 'month' ? 'bulan ini' : 'tahun ini'}`} onClick={() => onNavigate && onNavigate('report')} />
             </div>
 
             {/* Chart + Sidebar */}
@@ -209,25 +234,6 @@ export default function Dashboard({ onNavigate }) {
                 </div>
             </div>
 
-            {/* Quick Summary */}
-            {chartData?.summary && (
-                <div className="bg-gradient-to-r from-orange-500 to-amber-500 rounded-2xl p-6 text-white shadow-lg shadow-orange-500/20">
-                    <div className="grid grid-cols-3 gap-6 text-center">
-                        <div>
-                            <p className="text-white/70 text-xs font-bold uppercase tracking-wider mb-1">Total Revenue ({chartDays}H)</p>
-                            <p className="text-2xl font-bold">{formatRupiah(chartData.summary.total_revenue)}</p>
-                        </div>
-                        <div>
-                            <p className="text-white/70 text-xs font-bold uppercase tracking-wider mb-1">Total Transaksi</p>
-                            <p className="text-2xl font-bold">{chartData.summary.total_orders}</p>
-                        </div>
-                        <div>
-                            <p className="text-white/70 text-xs font-bold uppercase tracking-wider mb-1">Rata-rata / Order</p>
-                            <p className="text-2xl font-bold">{formatRupiah(chartData.summary.avg_order_value)}</p>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 }
