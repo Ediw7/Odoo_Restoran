@@ -5,7 +5,7 @@ import {
     BarChart, Bar, Cell, PieChart, Pie
 } from 'recharts';
 
-export default function Dashboard() {
+export default function Dashboard({ onNavigate }) {
     const [data, setData] = useState(null);
     const [chartData, setChartData] = useState(null);
     const [loading, setLoading] = useState(true);
@@ -67,9 +67,9 @@ export default function Dashboard() {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <StatCard title="Cabang Buka" val={`${data.cabang_buka} / ${data.total_cabang}`} icon="🏪" sub="outlet aktif" />
+                <StatCard title="Cabang Buka" val={`${data.cabang_buka} / ${data.total_cabang}`} icon="🏪" sub="outlet aktif" onClick={() => onNavigate && onNavigate('cabang')} />
                 <StatCard title="Total Order" val={data.global.total_orders} icon="📋" sub={`${period === 'today' ? 'hari ini' : period === 'week' ? 'minggu ini' : period === 'month' ? 'bulan ini' : 'tahun ini'}`} />
-                <StatCard title="Pendapatan" val={formatRupiah(data.global.total_revenue)} icon="💰" highlight />
+                <StatCard title="Pendapatan" val={formatRupiah(data.global.total_revenue)} icon="💰" highlight onClick={() => onNavigate && onNavigate('report')} />
                 <StatCard title="Menu Tersedia" val={data.global.total_menu_available} icon="🍽️" sub="item aktif" />
             </div>
 
@@ -232,11 +232,12 @@ export default function Dashboard() {
     );
 }
 
-function StatCard({ title, val, icon, sub, highlight }) {
+function StatCard({ title, val, icon, sub, highlight, onClick }) {
     return (
-        <div className={`rounded-2xl p-5 border shadow-sm flex flex-col justify-between ${highlight ? 'bg-orange-50 border-orange-100' : 'bg-white border-gray-100'}`}>
+        <div onClick={onClick} className={`rounded-2xl p-5 border shadow-sm flex flex-col justify-between transition-all ${onClick ? 'cursor-pointer hover:shadow-md hover:-translate-y-0.5' : ''} ${highlight ? 'bg-orange-50 border-orange-100' : 'bg-white border-gray-100'}`}>
             <div className="flex items-center justify-between mb-3">
                 <span className="text-xl">{icon}</span>
+                {onClick && <span className="text-[10px] text-gray-300 font-bold">→</span>}
             </div>
             <div>
                 <h3 className={`text-xl font-bold tracking-tight ${highlight ? 'text-orange-600' : 'text-gray-800'}`}>{val}</h3>

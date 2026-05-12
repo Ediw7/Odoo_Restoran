@@ -212,7 +212,7 @@ export default function App() {
         </header>
 
         <div className="flex-1 overflow-y-auto p-5">
-          {activePage === "dashboard" && (userData?.role === 'owner' || userData?.role === 'admin') && adminViewMode === 'global' && <DashboardAdmin cabangId={activeCabangId} />}
+          {activePage === "dashboard" && (userData?.role === 'owner' || userData?.role === 'admin') && adminViewMode === 'global' && <DashboardAdmin cabangId={activeCabangId} onNavigate={(page) => setActivePage(page)} />}
           {activePage === "dashboard" && (userData?.role === 'manager' || ((userData?.role === 'owner' || userData?.role === 'admin') && adminViewMode === 'manager')) && <DashboardCabang cabangId={activeCabangId} />}
           {activePage === "dashboard_cabang" && <DashboardCabang cabangId={activeCabangId} />}
           {activePage === "cabang" && <Cabang onOpenManagerDashboard={(id) => { 

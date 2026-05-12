@@ -52,6 +52,53 @@ export default function Report({ cabangId, userRole }) {
         );
     };
 
+    const handleExportCSV = () => {
+        if (!data) return;
+        const rows = [];
+        // Header info
+        rows.push(['Laporan Keuangan - Warung Nusantara']);
+        rows.push([`Periode: ${filterMode === 'day' ? 'Harian' : filterMode === 'week' ? 'Mingguan' : filterMode === 'month' ? 'Bulanan' : 'Tahunan'} — ${filterValue}`]);
+        rows.push([]);
+        // Summary
+        rows.push(['RINGKASAN']);
+        rows.push(['Total Omset (Revenue)', data.total_revenue]);
+        rows.push(['Total Modal Bahan (COGS)', data.total_cogs]);
+        rows.push(['Laba Kotor (Gross Profit)', data.gross_profit]);
+        rows.push(['Margin (%)', data.gross_margin_pct]);
+        rows.push(['Total Pesanan', data.total_orders]);
+        rows.push([]);
+        // Detail table
+        const detailData = selectedCabang ? (data.top_tables || []) : (data.branch_performance || []);
+        if (detailData.length > 0) {
+            rows.push([selectedCabang ? 'RANKING MEJA' : 'PERFORMA PER CABANG']);
+            rows.push([selectedCabang ? 'Meja' : 'Cabang', 'Jumlah Transaksi', 'Total Omset']);
+            detailData.forEach(item => {
+                rows.push([
+                    selectedCabang ? `Meja ${item.table}` : item.name,
+                    item.count || item.orders,
+                    item.total
+                ]);
+            });
+        }
+        // Chart data
+        if (data.chart_data?.length > 0) {
+            rows.push([]);
+            rows.push(['TREN OMSET & LABA']);
+            rows.push(['Periode', 'Omset', 'Laba']);
+            data.chart_data.forEach(d => {
+                rows.push([d.label, d.revenue, d.profit]);
+            });
+        }
+        const csvContent = rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
+        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `laporan_keuangan_${filterMode}_${filterValue}.csv`;
+        a.click();
+        URL.revokeObjectURL(url);
+    };
+
     const MetricBox = ({ title, value, sub, isProfit }) => (
         <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm relative overflow-hidden">
             <h3 className="text-gray-500 text-sm font-medium mb-2">{title}</h3>
@@ -70,6 +117,12 @@ export default function Report({ cabangId, userRole }) {
                 <div>
                     <h2 className="text-xl font-bold text-gray-800">Laporan Keuangan ERP</h2>
                     <p className="text-sm text-gray-400 mt-1">Integrasi HPP Resep Material dengan Omset POS otomatis.</p>
+                </div>
+                <div className="flex items-center gap-3">
+                    <button onClick={handleExportCSV} 
+                        className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2">
+                        <span>📥</span> Export CSV
+                    </button>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-3 bg-white border border-gray-200 rounded-2xl p-2 shadow-sm">
