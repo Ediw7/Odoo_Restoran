@@ -26,8 +26,8 @@ export default function Dashboard({ onNavigate }) {
         setLoading(true);
         const chartDaysMap = { today: 1, week: 7, month: 30, year: 365 };
         const [resDash, resChart] = await Promise.all([
-            api.getDashboard(null, period),
-            api.getChartData(null, chartDaysMap[period] || 30)
+            api.getDashboard(null, period, filterDate),
+            api.getChartData(null, chartDaysMap[period] || 30, filterDate)
         ]);
         if (resDash?.status === 'success') setData(resDash.data);
         if (resChart?.status === 'success') setChartData(resChart.data);
@@ -83,11 +83,10 @@ export default function Dashboard({ onNavigate }) {
                         {period === 'year' && (
                             <select value={filterDate} onChange={e => setFilterDate(e.target.value)}
                                 className="bg-gray-50 border border-gray-100 rounded-xl px-3 py-1.5 text-xs font-bold text-gray-700 outline-none focus:border-orange-400">
-                                {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>{y}</option>)}
+                                {Array.from({ length: new Date().getFullYear() - 2020 + 1 }, (_, i) => new Date().getFullYear() - i).map(y => <option key={y} value={y}>{y}</option>)}
                             </select>
                         )}
                     </div>
-                    <button onClick={fetchAll} className="text-xs text-gray-400 hover:text-orange-500 transition-all bg-gray-50 border border-gray-100 px-3 py-1.5 rounded-xl">↻</button>
                 </div>
             </div>
 

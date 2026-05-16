@@ -22,8 +22,8 @@ export const api = {
         method: 'POST',
         body: JSON.stringify({ username, password })
     }),
-    getDashboard: (cabangId, period = 'today') => {
-        let url = `/api/dashboard?period=${period}`;
+    getDashboard: (cabangId, period = 'today', filterDate = '') => {
+        let url = `/api/dashboard?period=${period}&filter_date=${filterDate}`;
         if (cabangId) url += `&cabang_id=${cabangId}`;
         return apiFetch(url);
     },
@@ -56,8 +56,8 @@ export const api = {
         if (params.length) url += '?' + params.join('&');
         return apiFetch(url);
     },
-    getChartData: (cabangId, days = 7) => {
-        let url = `/api/dashboard/chart?days=${days}`;
+    getChartData: (cabangId, days = 7, filterDate = '') => {
+        let url = `/api/dashboard/chart?days=${days}&filter_date=${filterDate}`;
         if (cabangId) url += `&cabang_id=${cabangId}`;
         return apiFetch(url);
     },

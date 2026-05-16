@@ -19,6 +19,7 @@ class RestoranAPI_Dashboard_7(RestoranBase):
         try:
             cabang_id = kwargs.get('cabang_id')
             period = kwargs.get('period', 'today') # Ambil filter waktu, default: hari ini
+            filter_date_str = kwargs.get('filter_date')
             
             domain = [('id', '=', int(cabang_id))] if cabang_id else []
             cabang_list = request.env['restoran.cabang'].sudo().search(domain)
@@ -36,18 +37,37 @@ class RestoranAPI_Dashboard_7(RestoranBase):
                 order_domain.append(('cabang_id', '=', int(cabang_id)))
                 
             today = Date.today()
+            if filter_date_str:
+                try:
+                    if period in ['today', 'week'] and len(filter_date_str) == 10:
+                        today = datetime.strptime(filter_date_str, '%Y-%m-%d').date()
+                    elif period == 'month' and len(filter_date_str) == 7:
+                        today = datetime.strptime(filter_date_str + '-01', '%Y-%m-%d').date()
+                    elif period == 'year' and len(filter_date_str) == 4:
+                        today = datetime.strptime(filter_date_str + '-01-01', '%Y-%m-%d').date()
+                except Exception:
+                    pass
+
             if period == 'today':
                 order_domain += [('order_date', '>=', today.strftime('%Y-%m-%d 00:00:00')), 
                                  ('order_date', '<=', today.strftime('%Y-%m-%d 23:59:59'))]
             elif period == 'month':
                 first_day_of_month = today.replace(day=1)
-                order_domain += [('order_date', '>=', first_day_of_month.strftime('%Y-%m-%d 00:00:00'))]
+                import calendar
+                last_day = calendar.monthrange(today.year, today.month)[1]
+                end_date = today.replace(day=last_day)
+                order_domain += [('order_date', '>=', first_day_of_month.strftime('%Y-%m-%d 00:00:00')),
+                                 ('order_date', '<=', end_date.strftime('%Y-%m-%d 23:59:59'))]
             elif period == 'week':
                 start_week = today - timedelta(days=today.weekday())
-                order_domain += [('order_date', '>=', start_week.strftime('%Y-%m-%d 00:00:00'))]
+                end_week = start_week + timedelta(days=6)
+                order_domain += [('order_date', '>=', start_week.strftime('%Y-%m-%d 00:00:00')),
+                                 ('order_date', '<=', end_week.strftime('%Y-%m-%d 23:59:59'))]
             elif period == 'year':
                 first_day_of_year = today.replace(month=1, day=1)
-                order_domain += [('order_date', '>=', first_day_of_year.strftime('%Y-%m-%d 00:00:00'))]
+                end_day_of_year = today.replace(month=12, day=31)
+                order_domain += [('order_date', '>=', first_day_of_year.strftime('%Y-%m-%d 00:00:00')),
+                                 ('order_date', '<=', end_day_of_year.strftime('%Y-%m-%d 23:59:59'))]
 
             all_orders = request.env['restoran.order'].sudo().search(order_domain)
 
@@ -91,6 +111,21 @@ class RestoranAPI_Dashboard_9(RestoranBase):
             from datetime import timedelta
             from collections import Counter
             today = Date.today()
+            filter_date_str = kwargs.get('filter_date')
+            if filter_date_str:
+                try:
+                    if len(filter_date_str) == 10:
+                        today = datetime.strptime(filter_date_str, '%Y-%m-%d').date()
+                    elif len(filter_date_str) == 7:
+                        temp_date = datetime.strptime(filter_date_str + '-01', '%Y-%m-%d').date()
+                        import calendar
+                        last_day = calendar.monthrange(temp_date.year, temp_date.month)[1]
+                        today = temp_date.replace(day=last_day)
+                    elif len(filter_date_str) == 4:
+                        today = datetime.strptime(filter_date_str + '-12-31', '%Y-%m-%d').date()
+                except Exception:
+                    pass
+
             start_date = today - timedelta(days=days - 1)
 
             order_domain = [
