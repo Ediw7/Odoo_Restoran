@@ -127,7 +127,7 @@ export default function Pelanggan({ cabangId, userRole }) {
                             </p>
                             {searchResult.is_eligible_reward && (
                                 <span className="mt-1.5 inline-block bg-amber-100 text-amber-700 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-                                    🎁 Eligible Reward
+                                    🎁 Bisa Klaim Hadiah
                                 </span>
                             )}
                             {searchResult.special_reward && (
@@ -212,7 +212,7 @@ export default function Pelanggan({ cabangId, userRole }) {
                         <div className="p-6">
                             <div className="bg-orange-50 rounded-xl p-3 mb-5 text-xs text-orange-700 font-semibold">
                                 <p className="text-xs text-orange-700 font-semibold mt-1">{selected.visit_count} kunjungan · {selected.loyalty_points} poin total</p>
-                                {selected.is_eligible_reward && <p className="text-amber-600 font-bold text-xs mt-1">🎁 Pelanggan ini eligible mendapat reward!</p>}
+                                {selected.is_eligible_reward && <p className="text-amber-600 font-bold text-xs mt-1">🎁 Pelanggan ini berhak mendapat hadiah!</p>}
                             </div>
                             <form onSubmit={handleGiveReward} className="space-y-4">
                                 <div>
