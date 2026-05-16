@@ -176,9 +176,9 @@ export default function Report({ cabangId, userRole }) {
             {/* Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricBox title="Total Omset" value={formatRupiah(data.total_revenue)} sub={`${data.total_orders} Pesanan Selesai`} />
-                <MetricBox title="Total Modal Bahan (HPP)" value={formatRupiah(data.total_cogs)} sub="Dihitung otomatis dari resep" />
-                <MetricBox title="Laba Kotor" value={formatRupiah(data.gross_profit)} sub="Sebelum biaya operasional" isProfit={true} />
-                <MetricBox title="Persentase Margin" value={`${data.gross_margin_pct}%`} sub="Target ideal F&B: 60-70%" />
+                <MetricBox title="Total Modal Bahan (HPP)" value={formatRupiah(data.total_cogs)} />
+                <MetricBox title="Laba Kotor" value={formatRupiah(data.gross_profit)} isProfit={true} />
+                <MetricBox title="Persentase Margin" value={`${data.gross_margin_pct}%`} />
             </div>
 
             {/* Charts Section */}

@@ -4,6 +4,7 @@ import { api, formatRupiah } from "../api";
 export default function Menu({ cabangId }) {
     const [menus, setMenus] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedMenu, setSelectedMenu] = useState(null);
 
     useEffect(() => {
         (async () => {
@@ -34,7 +35,7 @@ export default function Menu({ cabangId }) {
                     {menus.map(m => {
                         const out = m.use_stock && m.stock_qty <= 0;
                         return (
-                            <div key={m.id} className={`bg-white border border-gray-100 rounded-xl p-4 hover:border-gray-200 hover:shadow-sm transition-all flex flex-col h-full ${out ? 'opacity-40' : ''}`}>
+                            <div key={m.id} onClick={() => setSelectedMenu(m)} className={`bg-white border border-gray-100 rounded-xl p-4 hover:border-gray-200 hover:shadow-sm transition-all flex flex-col h-full cursor-pointer ${out ? 'opacity-40' : ''}`}>
                                 <div className="flex justify-between items-start mb-2">
                                     <span className={`px-2 py-0.5 rounded text-xs font-medium ${out ? 'bg-red-50 text-red-500' : m.use_stock && m.stock_qty <= 5 ? 'bg-yellow-50 text-yellow-600' : 'bg-green-50 text-green-600'}`}>
                                         {out ? 'Habis' : m.use_stock && m.stock_qty <= 5 ? 'Menipis' : 'Tersedia'}
@@ -55,6 +56,44 @@ export default function Menu({ cabangId }) {
                             </div>
                         );
                     })}
+                </div>
+            )}
+
+            {selectedMenu && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[200] flex items-center justify-center p-4 animate-fade-in" onClick={() => setSelectedMenu(null)}>
+                    <div className="bg-white rounded-[2rem] w-full max-w-md shadow-2xl p-8 border border-gray-100 animate-scale-in" onClick={e => e.stopPropagation()}>
+                        <div className="flex justify-between items-start mb-6">
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-800">{selectedMenu.name}</h2>
+                                <p className="text-sm text-gray-400 mt-0.5">{selectedMenu.kategori?.name} · {formatRupiah(selectedMenu.price)}</p>
+                            </div>
+                            <button onClick={() => setSelectedMenu(null)} className="w-8 h-8 flex items-center justify-center bg-gray-50 text-gray-400 rounded-full hover:bg-gray-100 transition-colors font-bold">×</button>
+                        </div>
+                        
+                        <div className="space-y-4">
+                            <div>
+                                <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Resep Bahan Baku (BOM)</h3>
+                                {selectedMenu.bom_line_ids && selectedMenu.bom_line_ids.length > 0 ? (
+                                    <div className="space-y-2">
+                                        {selectedMenu.bom_line_ids.map((bom, i) => (
+                                            <div key={i} className="flex justify-between items-center bg-gray-50 border border-gray-100 p-3 rounded-xl">
+                                                <span className="font-medium text-gray-700 text-sm">{bom.bahan_name}</span>
+                                                <span className="text-xs font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-lg">{bom.qty} {bom.uom}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-6 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                        <p className="text-sm text-gray-400 italic">Menu ini tidak menggunakan resep bahan baku khusus.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                        
+                        <div className="mt-8 pt-4 border-t border-gray-50 flex justify-end">
+                            <button onClick={() => setSelectedMenu(null)} className="px-6 py-2.5 bg-gray-100 text-gray-600 font-bold rounded-xl text-sm hover:bg-gray-200 transition-colors">Tutup</button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
