@@ -11,9 +11,8 @@ export default function Dashboard({ onNavigate }) {
     const [loading, setLoading] = useState(true);
     const [period, setPeriod] = useState('today');
     const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
-    const [chartDays, setChartDays] = useState(7);
 
-    useEffect(() => { fetchAll(); }, [period, chartDays, filterDate]);
+    useEffect(() => { fetchAll(); }, [period, filterDate]);
 
     const handlePeriodChange = (p) => {
         setPeriod(p);
@@ -25,9 +24,10 @@ export default function Dashboard({ onNavigate }) {
 
     const fetchAll = async () => {
         setLoading(true);
+        const chartDaysMap = { today: 1, week: 7, month: 30, year: 365 };
         const [resDash, resChart] = await Promise.all([
             api.getDashboard(null, period),
-            api.getChartData(null, chartDays)
+            api.getChartData(null, chartDaysMap[period] || 30)
         ]);
         if (resDash?.status === 'success') setData(resDash.data);
         if (resChart?.status === 'success') setChartData(resChart.data);
@@ -54,7 +54,7 @@ export default function Dashboard({ onNavigate }) {
             <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-800 tracking-tight">Ringkasan Bisnis</h1>
-                    <p className="text-sm text-gray-500 mt-1">Pantau performa seluruh cabang secara real-time.</p>
+                    <p className="text-sm text-gray-500 mt-1">Pantau performa seluruh cabang dalam satu layar.</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3 bg-white border border-gray-200 rounded-2xl p-2 shadow-sm">
                     <div className="flex bg-gray-50 p-1 rounded-xl">
@@ -93,8 +93,8 @@ export default function Dashboard({ onNavigate }) {
 
             {/* Stats Grid */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <StatCard title="Cabang Aktif" val={`${data.cabang_buka} dari ${data.total_cabang} Cabang`} icon="🏪" sub="Outlet yang sedang buka" onClick={() => onNavigate && onNavigate('cabang')} />
-                <StatCard title="Jumlah Transaksi" val={`${data.global.total_orders} Pesanan`} icon="📋" sub={`Periode: ${period === 'today' ? 'Hari Ini' : period === 'week' ? 'Minggu Ini' : period === 'month' ? 'Bulan Ini' : 'Tahun Ini'}`} />
+                <StatCard title="Cabang Aktif" val={`${data.cabang_buka} dari ${data.total_cabang} Cabang`} icon="🏪" sub="Yang sedang buka" onClick={() => onNavigate && onNavigate('cabang')} />
+                <StatCard title="Jumlah Transaksi" val={`${data.global.total_orders} Pesanan`} icon="📋" sub={`Periode: ${period === 'today' ? 'Hari Ini' : period === 'week' ? 'Minggu Ini' : period === 'month' ? 'Bulan Ini' : 'Tahun Ini'}`} onClick={() => onNavigate && onNavigate('orders')} />
                 <StatCard title="Total Pendapatan" val={formatRupiah(data.global.total_revenue)} icon="💰" highlight sub={`Omset ${period === 'today' ? 'hari ini' : period === 'week' ? 'minggu ini' : period === 'month' ? 'bulan ini' : 'tahun ini'}`} onClick={() => onNavigate && onNavigate('report')} />
             </div>
 
@@ -105,15 +105,7 @@ export default function Dashboard({ onNavigate }) {
                     <div className="flex items-center justify-between mb-6">
                         <div>
                             <h3 className="font-bold text-gray-800">Tren Pendapatan</h3>
-                            <p className="text-xs text-gray-400 mt-0.5">{chartDays} hari terakhir</p>
-                        </div>
-                        <div className="flex bg-gray-50 p-0.5 rounded-lg">
-                            {[7, 14, 30].map(d => (
-                                <button key={d} onClick={() => setChartDays(d)}
-                                    className={`px-3 py-1 rounded-md text-[10px] font-bold transition-all ${chartDays === d ? 'bg-white shadow-sm text-orange-600' : 'text-gray-400'}`}>
-                                    {d}H
-                                </button>
-                            ))}
+                            <p className="text-xs text-gray-400 mt-0.5">{period === 'today' ? 'Hari ini' : period === 'week' ? '7 hari terakhir' : period === 'month' ? '30 hari terakhir' : '1 tahun terakhir'}</p>
                         </div>
                     </div>
                     {chartData?.chart?.length > 0 ? (
@@ -133,14 +125,14 @@ export default function Dashboard({ onNavigate }) {
                             </AreaChart>
                         </ResponsiveContainer>
                     ) : (
-                        <div className="h-[220px] flex items-center justify-center text-gray-300 text-sm">Belum ada data chart</div>
+                        <div className="h-[220px] flex items-center justify-center text-gray-300 text-sm">Belum ada data pendapatan</div>
                     )}
                 </div>
 
                 {/* Top Menu Terlaris */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                     <h3 className="font-bold text-gray-800 mb-1">Menu Terlaris</h3>
-                    <p className="text-xs text-gray-400 mb-5">{chartDays} hari terakhir</p>
+                    <p className="text-xs text-gray-400 mb-5">{period === 'today' ? 'Hari ini' : period === 'week' ? '7 hari terakhir' : period === 'month' ? '30 hari terakhir' : '1 tahun terakhir'}</p>
                     {chartData?.top_menu?.length > 0 ? (
                         <div className="space-y-3">
                             {chartData.top_menu.map((m, i) => (
@@ -167,7 +159,7 @@ export default function Dashboard({ onNavigate }) {
                 {/* Payment Methods */}
                 <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                     <h3 className="font-bold text-gray-800 mb-1">Metode Pembayaran</h3>
-                    <p className="text-xs text-gray-400 mb-5">{chartDays} hari terakhir</p>
+                    <p className="text-xs text-gray-400 mb-5">{period === 'today' ? 'Hari ini' : period === 'week' ? '7 hari terakhir' : period === 'month' ? '30 hari terakhir' : '1 tahun terakhir'}</p>
                     {chartData?.payment_breakdown?.length > 0 ? (
                         <>
                             <div className="flex justify-center mb-4">
@@ -199,7 +191,7 @@ export default function Dashboard({ onNavigate }) {
                 {/* Branch Performance */}
                 <div className="lg:col-span-2 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                     <h3 className="font-bold text-gray-800 mb-1">Performa Cabang</h3>
-                    <p className="text-xs text-gray-400 mb-5">Statistik per outlet — {period === 'today' ? 'hari ini' : period === 'week' ? 'minggu ini' : period === 'month' ? 'bulan ini' : 'tahun ini'}</p>
+                    <p className="text-xs text-gray-400 mb-5">Statistik per cabang — {period === 'today' ? 'hari ini' : period === 'week' ? 'minggu ini' : period === 'month' ? 'bulan ini' : 'tahun ini'}</p>
                     <div className="space-y-3">
                         {data.cabang_stats.map((c, i) => {
                             const maxRev = Math.max(...data.cabang_stats.map(x => x.revenue_today), 1);
@@ -216,7 +208,7 @@ export default function Dashboard({ onNavigate }) {
                                                 <span className={`w-1.5 h-1.5 rounded-full ${c.is_open ? 'bg-emerald-500' : 'bg-gray-300'}`}></span>
                                             </div>
                                             <div className="flex items-center gap-4">
-                                                <span className="text-[10px] text-gray-400 font-medium">{c.total_order_today} order</span>
+                                                <span className="text-[10px] text-gray-400 font-medium">{c.total_order_today} pesanan</span>
                                                 <span className="text-sm font-bold text-gray-800">{formatRupiah(c.revenue_today)}</span>
                                             </div>
                                         </div>
