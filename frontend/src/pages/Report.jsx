@@ -115,13 +115,13 @@ export default function Report({ cabangId, userRole }) {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                    <h2 className="text-xl font-bold text-gray-800">Laporan Keuangan ERP</h2>
-                    <p className="text-sm text-gray-400 mt-1">Integrasi HPP Resep Material dengan Omset POS otomatis.</p>
+                    <h2 className="text-xl font-bold text-gray-800">Laporan Keuangan</h2>
+                    <p className="text-sm text-gray-400 mt-1">Integrasi HPP resep bahan dengan omset POS otomatis.</p>
                 </div>
                 <div className="flex items-center gap-3">
                     <button onClick={handleExportCSV} 
                         className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2">
-                        <span>📥</span> Export CSV
+                        <span>📥</span> Ekspor CSV
                     </button>
                 </div>
 
@@ -160,7 +160,7 @@ export default function Report({ cabangId, userRole }) {
             {isOwner && (
             <div className="flex items-center gap-3">
                 <div className="flex items-center gap-2 bg-white border border-gray-100 px-4 py-2 rounded-xl shadow-sm">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase">Outlet</span>
+                    <span className="text-[10px] font-bold text-gray-400 uppercase">Cabang</span>
                     <select 
                         value={selectedCabang} 
                         onChange={(e) => setSelectedCabang(e.target.value)}
@@ -175,10 +175,10 @@ export default function Report({ cabangId, userRole }) {
 
             {/* Metrics */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <MetricBox title="Total Omset (Revenue)" value={formatRupiah(data.total_revenue)} sub={`${data.total_orders} Pesanan Selesai`} />
-                <MetricBox title="Total Modal Bahan (COGS)" value={formatRupiah(data.total_cogs)} sub="Dihitung otomatis dari BOM" />
-                <MetricBox title="Laba Kotor (Gross Profit)" value={formatRupiah(data.gross_profit)} sub={`Sisa bersih sebelum operasional`} isProfit={true} />
-                <MetricBox title="Persentase Margin" value={`${data.gross_margin_pct}%`} sub="Target ideal Food & Beverage: 60-70%" />
+                <MetricBox title="Total Omset" value={formatRupiah(data.total_revenue)} sub={`${data.total_orders} Pesanan Selesai`} />
+                <MetricBox title="Total Modal Bahan (HPP)" value={formatRupiah(data.total_cogs)} sub="Dihitung otomatis dari resep" />
+                <MetricBox title="Laba Kotor" value={formatRupiah(data.gross_profit)} sub="Sebelum biaya operasional" isProfit={true} />
+                <MetricBox title="Persentase Margin" value={`${data.gross_margin_pct}%`} sub="Target ideal F&B: 60-70%" />
             </div>
 
             {/* Charts Section */}
@@ -186,7 +186,7 @@ export default function Report({ cabangId, userRole }) {
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                     <h3 className="font-bold text-gray-800 mb-6 flex items-center justify-between">
                         Tren Omset & Laba
-                        <span className="text-[10px] text-gray-400 font-medium">Financial Status</span>
+                        <span className="text-[10px] text-gray-400 font-medium">Status Keuangan</span>
                     </h3>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
@@ -214,7 +214,7 @@ export default function Report({ cabangId, userRole }) {
                 <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
                     <h3 className="font-bold text-gray-800 mb-6 flex items-center justify-between">
                         {selectedCabang ? "Ranking Omset Per Meja" : "Ranking Omset Per Cabang"}
-                        <span className="text-[10px] text-gray-400 font-medium">Performance Ranking</span>
+                        <span className="text-[10px] text-gray-400 font-medium">Peringkat Performa</span>
                     </h3>
                     <div className="h-[300px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
