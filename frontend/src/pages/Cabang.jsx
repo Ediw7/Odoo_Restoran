@@ -207,7 +207,7 @@ export default function Cabang({ onOpenManagerDashboard }) {
             <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
                 <div>
                     <h1 className="text-2xl font-semibold text-gray-800 tracking-tight">Manajemen Cabang</h1>
-                    <p className="text-sm text-gray-500 mt-0.5">Kelola outlet dan akses login karyawan.</p>
+                    <p className="text-sm text-gray-500 mt-0.5">Kelola cabang dan akses login karyawan.</p>
                 </div>
                 <div className="flex gap-3">
                     <div className="relative">
@@ -275,8 +275,8 @@ export default function Cabang({ onOpenManagerDashboard }) {
                             {/* Staff Accounts Section */}
                             <div className="mt-4 border-t border-gray-100 pt-4">
                                 <div className="flex justify-between items-center mb-3">
-                                    <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Akun Staff Karyawan ({branchUsers.filter(u => u.role !== 'branch_device').length})</h5>
-                                    <button onClick={() => handleOpenUserForm(null, c)} className="text-xs text-orange-500 font-bold hover:text-orange-600 bg-orange-50 px-3 py-1.5 rounded-lg transition-colors">+ Tambah Staff</button>
+                                    <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Akun Karyawan ({branchUsers.filter(u => u.role !== 'branch_device').length})</h5>
+                                    <button onClick={() => handleOpenUserForm(null, c)} className="text-xs text-orange-500 font-bold hover:text-orange-600 bg-orange-50 px-3 py-1.5 rounded-lg transition-colors">+ Tambah Karyawan</button>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                     {branchUsers.filter(u => u.role !== 'branch_device' && u.role !== 'branch').map(bu => (
@@ -284,7 +284,7 @@ export default function Cabang({ onOpenManagerDashboard }) {
                                             <div>
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-bold text-sm text-gray-800">{bu.name}</span>
-                                                    <span className="text-[9px] bg-white border border-gray-200 text-gray-500 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">{bu.role}</span>
+                                                    <span className="text-[9px] bg-white border border-gray-200 text-gray-500 px-1.5 py-0.5 rounded uppercase font-bold tracking-wider">{{cashier:'Kasir',kitchen:'Dapur',manager:'Manajer',admin:'Admin'}[bu.role] || bu.role}</span>
                                                 </div>
                                                 <div className="text-xs text-gray-400 mt-0.5">{bu.login}</div>
                                             </div>
@@ -347,7 +347,7 @@ export default function Cabang({ onOpenManagerDashboard }) {
                     <div className="bg-white rounded-[2rem] w-full max-w-sm shadow-2xl p-10 border border-gray-100 animate-scale-in">
                         <div className="mb-8">
                             <h2 className="text-xl font-bold text-gray-800">Edit Cabang & Akses</h2>
-                            <p className="text-sm text-gray-400 mt-1">Sesuaikan identitas outlet dan kredensial login.</p>
+                            <p className="text-sm text-gray-400 mt-1">Sesuaikan identitas cabang dan kredensial login.</p>
                         </div>
                         
                         <form onSubmit={handleUserSubmit} className="space-y-5">
@@ -357,7 +357,7 @@ export default function Cabang({ onOpenManagerDashboard }) {
                             </div>
 
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Nama Staff</label>
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Nama Karyawan</label>
                                 <input type="text" value={userFormData.name} onChange={e => setUserFormData({...userFormData, name: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-orange-500 text-sm font-medium" placeholder="Nama" required />
                             </div>
                             <div className="space-y-1.5">
@@ -365,13 +365,12 @@ export default function Cabang({ onOpenManagerDashboard }) {
                                 <input type="text" value={userFormData.login} onChange={e => setUserFormData({...userFormData, login: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-orange-500 text-sm font-medium" placeholder="email@login.com" required />
                             </div>
                             <div className="space-y-1.5">
-                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Role Akun</label>
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest ml-1">Peran Akun</label>
                                 <select value={userFormData.role} onChange={e => setUserFormData({...userFormData, role: e.target.value})} className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-orange-500 text-sm font-medium">
                                     <option value="cashier">Kasir (POS)</option>
                                     <option value="kitchen">Dapur (KDS)</option>
-                                    <option value="manager">Manager Cabang (Gudang & Dash)</option>
-                                    <option value="branch_device">Device Launcher (Hanya Layar Awal)</option>
-                                    <option value="admin">Owner / General Manager</option>
+                                    <option value="manager">Manajer Cabang</option>
+                                    <option value="admin">Pemilik / GM</option>
                                 </select>
                             </div>
                             <div className="space-y-1.5">
@@ -382,7 +381,7 @@ export default function Cabang({ onOpenManagerDashboard }) {
                             <div className="flex gap-2 pt-6">
                                 <button type="button" onClick={() => setShowUserForm(false)} className="flex-1 py-3 bg-gray-50 text-gray-500 font-bold rounded-xl text-sm transition-colors">Batal</button>
                                 <button type="submit" disabled={isSubmitting} className="flex-1 py-3 bg-orange-500 text-white font-bold rounded-xl text-sm shadow-lg shadow-orange-500/20 hover:bg-orange-600 transition-all">
-                                    {isSubmitting ? 'Saving...' : 'Simpan'}
+                                    {isSubmitting ? 'Menyimpan...' : 'Simpan'}
                                 </button>
                             </div>
                         </form>
