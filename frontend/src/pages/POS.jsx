@@ -23,6 +23,7 @@ export default function POS({ cabangList, activeCabangId }) {
     const [activeOrderForName, setActiveOrderForName] = useState(null);
     const [checkoutMode, setCheckoutMode] = useState("cart"); // "cart" or "pay_active"
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [isAddingToOrder, setIsAddingToOrder] = useState(false);
 
     useEffect(() => { fetchKategoris(); }, []);
     useEffect(() => { fetchMenus(); }, [activeKategori, activeCabangId]);
@@ -53,9 +54,6 @@ export default function POS({ cabangList, activeCabangId }) {
                     o.customer_name?.toLowerCase() === customerName.toLowerCase()
                 );
                 setActiveOrderForName(matched || null);
-                if (matched && cart.length === 0) {
-                    setCheckoutMode("pay_active");
-                }
             } else {
                 setActiveOrderForName(null);
             }
@@ -133,7 +131,7 @@ export default function POS({ cabangList, activeCabangId }) {
                 item: rewardText
             });
         } else {
-            alert(res?.message || "Gagal mencairkan hadiah spesial.");
+            toast.error(res?.message || "Gagal mencairkan hadiah spesial.");
         }
     };
 
@@ -191,8 +189,8 @@ export default function POS({ cabangList, activeCabangId }) {
 
     const handleCheckout = async (isPaid = false) => {
         if (cart.length === 0) return;
-        if (!customerName.trim()) return toast.warning("Nama Pelanggan wajib diisi sebelum dikirim ke dapur!");
-        if (orderType === 'dine_in' && !tableNumber.trim()) return toast.warning("Nomor Meja wajib diisi untuk pesanan Dine In!");
+        if (!isAddingToOrder && !customerName.trim()) return toast.warning("Nama Pelanggan wajib diisi sebelum dikirim ke dapur!");
+        if (!isAddingToOrder && orderType === 'dine_in' && !tableNumber.trim()) return toast.warning("Nomor Meja wajib diisi untuk pesanan Dine In!");
 
         let targetCabangId = activeCabangId;
         if (!targetCabangId && cabangList.length > 0) targetCabangId = cabangList[0].id;
@@ -212,12 +210,16 @@ export default function POS({ cabangList, activeCabangId }) {
         const res = await api.createOrder(payload);
         setIsSubmitting(false);
         if (res?.status === 'success') {
-            toast.success("Pesanan OTW ke Dapur!");
+            toast.success(isAddingToOrder ? "Pesanan tambahan dikirim ke Dapur!" : "Pesanan OTW ke Dapur!");
             setCart([]);
-            setTableNumber("");
-            setCustomerName("");
-            setCustomerPhone("");
-            setLoyalty(null);
+            setIsAddingToOrder(false);
+            if (!isAddingToOrder) {
+                setTableNumber("");
+                setCustomerName("");
+                setCustomerPhone("");
+                setLoyalty(null);
+                setActiveOrderForName(null);
+            }
             fetchMenus();
         }
         else toast.error("Gagal Transaksi: " + (res?.message || 'Error'));
@@ -295,7 +297,7 @@ export default function POS({ cabangList, activeCabangId }) {
             {/* Cart / Invoice */}
             <div className="w-full lg:w-[320px] xl:w-[350px] bg-white border border-gray-100 rounded-xl flex flex-col shrink-0 h-full overflow-hidden">
                 <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                    <h3 className="font-bold text-gray-800">Kasir Pembayaran</h3>
+                    <h3 className="font-bold text-gray-800">Keranjang Pesanan</h3>
                     {cart.length > 0 && (
                         <button onClick={() => setCart([])} className="text-xs text-red-500 font-bold hover:bg-red-50 px-2 py-1.5 rounded-lg transition-colors">Reset</button>
                     )}
@@ -303,10 +305,10 @@ export default function POS({ cabangList, activeCabangId }) {
 
                 <div className="p-3 border-b border-gray-100 space-y-3">
                     <div className="flex bg-gray-50 p-0.5 rounded-lg">
-                        {['dine_in', 'take_away', 'delivery'].map(type => (
-                            <button key={type} onClick={() => setOrderType(type)}
-                                className={`flex-1 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${orderType === type ? 'bg-white shadow-sm text-gray-800' : 'text-gray-400'}`}>
-                                {type.replace('_', ' ')}
+                        {[{id: 'dine_in', label: 'Dine In'}, {id: 'take_away', label: 'Bawa Pulang'}, {id: 'delivery', label: 'Delivery'}].map(type => (
+                            <button key={type.id} onClick={() => setOrderType(type.id)}
+                                className={`flex-1 py-1.5 rounded-md text-[10px] font-bold uppercase transition-all ${orderType === type.id ? 'bg-white shadow-sm text-gray-800' : 'text-gray-400'}`}>
+                                {type.label}
                             </button>
                         ))}
                     </div>
@@ -314,22 +316,24 @@ export default function POS({ cabangList, activeCabangId }) {
                         {orderType === 'dine_in' && (
                             <div className="col-span-1">
                                 <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">No. Meja</label>
-                                <input type="text" value={tableNumber} onChange={e => setTableNumber(e.target.value)} placeholder="00"
-                                    className="w-full px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm text-center font-bold outline-none focus:border-orange-400" />
+                                <input type="text" value={tableNumber} onChange={e => !isAddingToOrder && setTableNumber(e.target.value)} placeholder="00"
+                                    readOnly={isAddingToOrder}
+                                    className={`w-full px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-center font-bold outline-none focus:border-orange-400 ${isAddingToOrder ? 'bg-green-50 text-green-700 cursor-not-allowed' : 'bg-gray-50'}`} />
                             </div>
                         )}
                         <div className={`col-span-2 ${orderType !== 'dine_in' ? 'col-span-2 w-full' : ''}`}>
-                            <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Nama Pelanggan / Loyalty</label>
+                            <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Nama Pelanggan</label>
                             <div className="flex gap-1.5">
-                                <input type="text" value={customerName} onChange={e => setCustomerName(toUpperCase(e.target.value))} placeholder="Walk-in"
-                                    className="flex-1 px-3 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:border-orange-400" />
+                                <input type="text" value={customerName} onChange={e => !isAddingToOrder && setCustomerName(toUpperCase(e.target.value))} placeholder="Walk-in"
+                                    readOnly={isAddingToOrder}
+                                    className={`flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm outline-none focus:border-orange-400 ${isAddingToOrder ? 'bg-green-50 text-green-700 cursor-not-allowed' : 'bg-gray-50'}`} />
                                 <button onClick={async () => {
                                     if (!customerName) return;
                                     const res = await api.checkCustomer(customerName);
                                     if (res.status === 'success') {
                                         setLoyalty(res.data);
                                     } else {
-                                        alert(res.message || "Nama belum terdaftar di loyalty.");
+                                        toast.warning(res.message || "Nama belum terdaftar di loyalty.");
                                         setLoyalty(null);
                                     }
                                 }} className="shrink-0 bg-white border border-orange-200 hover:border-orange-500 text-orange-500 px-2 py-1.5 rounded-lg text-xs transition-all">
@@ -382,16 +386,40 @@ export default function POS({ cabangList, activeCabangId }) {
                     )}
                 </div>
 
-                {activeOrderForName && checkoutMode === "cart" && (
-                    <div className="mx-3 mt-2 px-3 py-2 bg-orange-50 border border-orange-100 rounded-lg flex justify-between items-center cursor-pointer shadow-sm animate-fade-in"
-                        onClick={() => setCheckoutMode("pay_active")}>
-                        <div>
-                            <span className="font-bold text-orange-600 text-[10px] uppercase tracking-widest">Tagihan Aktif Ditemukan</span>
-                            <div className="text-sm font-black text-gray-800">{activeOrderForName.customer_name} {activeOrderForName.table_number && `• Mj ${activeOrderForName.table_number}`}</div>
+                {activeOrderForName && checkoutMode === "cart" && !isAddingToOrder && (
+                    <div className="mx-3 mt-2 p-3 bg-orange-50 border border-orange-200 rounded-xl shadow-sm animate-fade-in">
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="text-lg">📋</span>
+                            <div className="flex-1">
+                                <span className="font-bold text-orange-600 text-[10px] uppercase tracking-widest">Pesanan Aktif Ditemukan</span>
+                                <div className="text-sm font-black text-gray-800">{activeOrderForName.customer_name} {activeOrderForName.table_number && `• Meja ${activeOrderForName.table_number}`}</div>
+                            </div>
                         </div>
-                        <button className="bg-orange-500 text-white text-[10px] px-3 py-1.5 rounded-md font-bold uppercase tracking-wider shadow-sm hover:bg-orange-600">
-                            Buka Tagihan
-                        </button>
+                        <div className="flex gap-2">
+                            <button onClick={() => {
+                                setIsAddingToOrder(true);
+                                setTableNumber(activeOrderForName.table_number || '');
+                                setCustomerName(activeOrderForName.customer_name || '');
+                            }}
+                                className="flex-1 py-2 bg-white border border-orange-200 text-orange-600 rounded-lg text-xs font-bold hover:bg-orange-100 transition-all">
+                                ➕ Tambah Pesanan
+                            </button>
+                            <button onClick={() => setCheckoutMode('pay_active')}
+                                className="flex-1 py-2 bg-orange-500 text-white rounded-lg text-xs font-bold hover:bg-orange-600 transition-all shadow-sm">
+                                💰 Bayar Tagihan
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {isAddingToOrder && activeOrderForName && checkoutMode === "cart" && (
+                    <div className="mx-3 mt-2 px-3 py-2 bg-green-50 border border-green-200 rounded-xl flex items-center gap-2 animate-fade-in">
+                        <span className="text-base">➕</span>
+                        <div className="flex-1">
+                            <span className="text-[10px] font-bold text-green-700 uppercase tracking-wider">Mode Tambah Pesanan</span>
+                            <div className="text-xs font-bold text-gray-700">Pilih menu, lalu kirim ke dapur untuk {activeOrderForName.customer_name}</div>
+                        </div>
+                        <button onClick={() => setIsAddingToOrder(false)} className="text-[10px] text-gray-400 hover:text-red-500 font-bold">✖</button>
                     </div>
                 )}
 
@@ -404,7 +432,7 @@ export default function POS({ cabangList, activeCabangId }) {
                             </div>
                             <div className="flex flex-col items-end gap-1">
                                 {activeOrderForName.table_number && <div className="text-[10px] font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded uppercase tracking-wider">Meja {activeOrderForName.table_number}</div>}
-                                <button onClick={() => setCheckoutMode("cart")} className="text-[10px] text-gray-500 underline hover:text-gray-800 font-medium">Batal & Nambah Lagi</button>
+                                <button onClick={() => setCheckoutMode("cart")} className="text-[10px] text-gray-500 underline hover:text-gray-800 font-medium">Kembali ke Keranjang</button>
                             </div>
                         </div>
 
@@ -425,10 +453,11 @@ export default function POS({ cabangList, activeCabangId }) {
                                 <span className="font-bold text-gray-400 text-[10px] tracking-widest uppercase">Total Bayar</span>
                                 <span className="text-xl font-black text-orange-600">{formatRupiah(activeOrderForName.total_amount)}</span>
                             </div>
-                            <div className="grid grid-cols-3 gap-1.5 mb-3">
+                            <div className="grid grid-cols-4 gap-1.5 mb-3">
                                 <PaymentOption id="cash" label="Tunai" icon="💵" />
                                 <PaymentOption id="qris" label="QRIS" icon="📱" />
                                 <PaymentOption id="card" label="Kartu" icon="💳" />
+                                <PaymentOption id="transfer" label="Transfer" icon="🏦" />
                             </div>
                             <button onClick={() => handlePayTagihan(activeOrderForName)} disabled={isSubmitting}
                                 className="w-full py-2.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-bold shadow-sm transition-all text-sm uppercase disabled:opacity-50">
@@ -442,7 +471,7 @@ export default function POS({ cabangList, activeCabangId }) {
                             {cart.length === 0 ? (
                                 <div className="h-full flex flex-col items-center justify-center text-gray-300">
                                     <span className="text-3xl mb-2">🛒</span>
-                                    <span className="text-xs">Pilih menu untuk mulai</span>
+                                    <span className="text-xs text-center leading-relaxed">Ketuk menu di sebelah kiri<br/>untuk menambah pesanan</span>
                                 </div>
                             ) : (
                                 <div className="space-y-3">
@@ -465,31 +494,21 @@ export default function POS({ cabangList, activeCabangId }) {
                             )}
                         </div>
 
-                        <div className="border-t border-gray-100 p-4 space-y-4 shrink-0 bg-gray-50/30">
-                            <div>
-                                <label className="block text-[10px] uppercase font-bold text-gray-400 mb-2">Metode Pembayaran</label>
-                                <div className="flex gap-2">
-                                    <PaymentOption id="cash" label="Tunai" icon="💵" />
-                                    <PaymentOption id="qris" label="QRIS" icon="📱" />
-                                    <PaymentOption id="card" label="Kartu" icon="💳" />
-                                </div>
-                            </div>
-
-                            <div className="space-y-1 pt-2 border-t border-gray-100">
-                                <div className="flex justify-between text-xs text-gray-500"><span>Subtotal</span><span>{formatRupiah(subtotal)}</span></div>
-                                <div className="flex justify-between text-xs text-gray-500"><span>Pajak (10%)</span><span>{formatRupiah(tax)}</span></div>
+                        <div className="border-t border-gray-100 p-4 space-y-3 shrink-0 bg-gray-50/30">
+                            <div className="space-y-1">
+                                <div className="flex justify-between text-xs text-gray-500"><span>Subtotal ({cart.reduce((s, c) => s + c.qty, 0)} item)</span><span>{formatRupiah(subtotal)}</span></div>
                                 <div className="flex justify-between pt-2 mt-1">
-                                    <span className="font-bold text-gray-800 text-sm">TOTAL BAYAR</span>
-                                    <span className="text-xl font-black text-orange-600">{formatRupiah(total)}</span>
+                                    <span className="font-bold text-gray-800 text-sm">TOTAL</span>
+                                    <span className="text-xl font-black text-orange-600">{formatRupiah(subtotal)}</span>
                                 </div>
+                                {!isAddingToOrder && <p className="text-[10px] text-gray-400 pt-1">Pembayaran dilakukan setelah pesanan selesai diantar.</p>}
+                                {isAddingToOrder && <p className="text-[10px] text-green-600 font-bold pt-1">Item akan ditambahkan ke pesanan {activeOrderForName?.customer_name}</p>}
                             </div>
 
-                            <div className="flex gap-2">
-                                <button disabled={isSubmitting || cart.length === 0 || (!tableNumber.trim() && !customerName.trim())} onClick={() => handleCheckout(false)}
-                                    className="w-full py-4 bg-orange-600 hover:bg-orange-700 text-white rounded-xl font-black text-sm tracking-widest shadow-xl shadow-orange-500/20 transition-all disabled:opacity-40 disabled:grayscale disabled:shadow-none uppercase">
-                                    {isSubmitting ? "MENGIRIM..." : "KIRIM DAPUR"}
-                                </button>
-                            </div>
+                            <button disabled={isSubmitting || cart.length === 0 || (!isAddingToOrder && !customerName.trim()) || (!isAddingToOrder && orderType === 'dine_in' && !tableNumber.trim())} onClick={() => handleCheckout(false)}
+                                className={`w-full py-4 ${isAddingToOrder ? 'bg-green-600 hover:bg-green-700 shadow-green-500/20' : 'bg-orange-600 hover:bg-orange-700 shadow-orange-500/20'} text-white rounded-xl font-black text-sm tracking-widest shadow-xl transition-all disabled:opacity-40 disabled:grayscale disabled:shadow-none uppercase`}>
+                                {isSubmitting ? "MENGIRIM..." : isAddingToOrder ? "➕ KIRIM TAMBAHAN KE DAPUR" : "KIRIM KE DAPUR"}
+                            </button>
                         </div>
                     </>
                 )}
@@ -506,7 +525,7 @@ export default function POS({ cabangList, activeCabangId }) {
                         <div className="bg-gray-50 p-4 rounded-xl mb-6 space-y-2 border border-gray-100">
                             <div className="flex justify-between text-[11px]"><span className="text-gray-400 uppercase font-bold">No. Order</span><span className="font-bold text-gray-800">{successOrder.name}</span></div>
                             <div className="flex justify-between text-[11px]"><span className="text-gray-400 uppercase font-bold">Meja</span><span className="font-bold text-gray-800">{successOrder.table}</span></div>
-                            <div className="flex justify-between text-[11px]"><span className="text-gray-400 uppercase font-bold">Metode</span><span className="font-bold text-orange-600 uppercase italic">{paymentMethod}</span></div>
+                            <div className="flex justify-between text-[11px]"><span className="text-gray-400 uppercase font-bold">Metode</span><span className="font-bold text-orange-600 uppercase">{{cash:'Tunai',qris:'QRIS',card:'Kartu',transfer:'Transfer'}[paymentMethod] || paymentMethod}</span></div>
                             <div className="h-px bg-gray-200 my-2"></div>
                             <div className="flex justify-between text-xs font-black"><span className="text-gray-800">TOTAL</span><span className="text-gray-800">{formatRupiah(successOrder.total_amount)}</span></div>
                         </div>

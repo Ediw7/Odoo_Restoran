@@ -20,15 +20,32 @@ class RestoranAPI_Auth_1(RestoranBase):
             data_str = request.httprequest.data.decode('utf-8')
             data = json.loads(data_str) if data_str else {}
             
-            username = data.get('username')
-            password = data.get('password')
+            username = data.get('username', '').strip()
+            password = data.get('password', '').strip()
+            
+            if not username or not password:
+                return self._json_response({'status': 'error', 'message': 'Email dan Password wajib diisi'}, 400)
+            
             db = request.env.cr.dbname
             
-            uid = request.session.authenticate(db, username, password)
+            # Check if user exists first
+            user_check = request.env['res.users'].sudo().search([('login', '=', username)], limit=1)
+            if not user_check:
+                return self._json_response({'status': 'error', 'message': 'Akun tidak ditemukan. Periksa kembali email Anda.'}, 401)
+            
+            try:
+                uid = request.session.authenticate(db, username, password)
+            except AccessDenied:
+                return self._json_response({'status': 'error', 'message': 'Password salah. Silakan coba lagi.'}, 401)
+            
             if not uid:
-                return self._json_response({'status': 'error', 'message': 'Username atau Password salah'}, 401)
+                return self._json_response({'status': 'error', 'message': 'Password salah. Silakan coba lagi.'}, 401)
             
             user = request.env['res.users'].sudo().browse(uid)
+            
+            if not user.restoran_role:
+                return self._json_response({'status': 'error', 'message': 'Akun ini belum memiliki role. Hubungi Admin.'}, 403)
+            
             return self._json_response({
                 'status': 'success',
                 'data': {
@@ -41,10 +58,10 @@ class RestoranAPI_Auth_1(RestoranBase):
             })
             
         except AccessDenied:
-            return self._json_response({'status': 'error', 'message': 'Username atau Password salah!'}, 401)
+            return self._json_response({'status': 'error', 'message': 'Password salah. Silakan coba lagi.'}, 401)
             
         except Exception as e:
             _logger.error(f"Login Error: {e}")
-            return self._json_response({'status': 'error', 'message': f'Server Error: {str(e)}'}, 500)
+            return self._json_response({'status': 'error', 'message': 'Terjadi kesalahan server. Coba beberapa saat lagi.'}, 500)
 
     

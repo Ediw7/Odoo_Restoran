@@ -8,11 +8,11 @@ export const apiFetch = async (url, options = {}) => {
                 ...(options.headers || {}),
             },
         });
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        return await res.json();
+        const data = await res.json();
+        return data;
     } catch (error) {
         console.error('API Error:', error);
-        return { status: 'error', message: error.message };
+        return { status: 'error', message: 'Tidak dapat terhubung ke server.' };
     }
 };
 

@@ -6,20 +6,26 @@ export default function Login({ onLoginSuccess }) {
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const [errorMsg, setErrorMsg] = useState("");
+    const [shake, setShake] = useState(false);
 
     const handleLogin = async (e) => {
         e.preventDefault();
         setErrorMsg("");
+        setShake(false);
         setLoading(true);
         try {
             const res = await api.login(username, password);
             if (res?.status === 'success') {
                 onLoginSuccess(res.data);
             } else {
-                setErrorMsg(res?.message || "Username atau Password Salah!");
+                setErrorMsg(res?.message || "Login gagal. Periksa kembali email dan password Anda.");
+                setShake(true);
+                setTimeout(() => setShake(false), 600);
             }
         } catch {
-            setErrorMsg("Gagal terhubung ke Server Odoo");
+            setErrorMsg("Tidak dapat terhubung ke server. Pastikan koneksi internet Anda aktif.");
+            setShake(true);
+            setTimeout(() => setShake(false), 600);
         }
         setLoading(false);
     };
@@ -41,8 +47,12 @@ export default function Login({ onLoginSuccess }) {
 
                 <form onSubmit={handleLogin} className="space-y-5">
                     {errorMsg && (
-                        <div className="text-xs bg-red-50 border border-red-200 text-red-600 p-3 rounded-xl font-bold text-center">
-                            ⚠️ {errorMsg}
+                        <div className={`flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl ${shake ? 'animate-shake' : ''}`}>
+                            <span className="text-lg mt-0.5">❌</span>
+                            <div>
+                                <p className="text-sm font-bold">Login Gagal</p>
+                                <p className="text-xs mt-0.5 text-red-600">{errorMsg}</p>
+                            </div>
                         </div>
                     )}
 
@@ -82,8 +92,8 @@ export default function Login({ onLoginSuccess }) {
 
                 <div className="mt-8 pt-6 border-t border-gray-100">
                     <p className="text-[11px] text-gray-400 text-center font-medium leading-relaxed">
-                        Login pertama kali untuk mengunci perangkat ke Cabang Anda.<br />
-                        Selanjutnya pilih Stasiun Kerja (Kasir, Dapur, Gudang).
+                        Masuk dengan akun Kasir, Dapur, Manajer, atau Admin.<br />
+                        Sistem akan mengarahkan Anda ke halaman yang sesuai.
                     </p>
                 </div>
 
