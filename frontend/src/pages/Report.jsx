@@ -4,6 +4,7 @@ import {
     AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     BarChart, Bar, Legend, Cell, LabelList
 } from 'recharts';
+import * as XLSX from 'xlsx';
 
 export default function Report({ cabangId, userRole }) {
     const [filterMode, setFilterMode] = useState('day'); // day, week, month, year
@@ -52,7 +53,7 @@ export default function Report({ cabangId, userRole }) {
         );
     };
 
-    const handleExportCSV = () => {
+    const handleExportExcel = () => {
         if (!data) return;
         const rows = [];
         // Header info
@@ -89,14 +90,10 @@ export default function Report({ cabangId, userRole }) {
                 rows.push([d.label, d.revenue, d.profit]);
             });
         }
-        const csvContent = rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
-        const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `laporan_keuangan_${filterMode}_${filterValue}.csv`;
-        a.click();
-        URL.revokeObjectURL(url);
+        const worksheet = XLSX.utils.aoa_to_sheet(rows);
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Laporan");
+        XLSX.writeFile(workbook, `laporan_keuangan_${filterMode}_${filterValue}.xlsx`);
     };
 
     const MetricBox = ({ title, value, sub, isProfit }) => (
@@ -119,9 +116,9 @@ export default function Report({ cabangId, userRole }) {
                     <p className="text-sm text-gray-400 mt-1">Integrasi HPP resep bahan dengan omset POS otomatis.</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button onClick={handleExportCSV} 
+                    <button onClick={handleExportExcel} 
                         className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2">
-                        <span>📥</span> Ekspor CSV
+                        <span>📥</span> Ekspor Excel
                     </button>
                 </div>
 
