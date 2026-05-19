@@ -40,9 +40,15 @@ export const api = {
         method: 'POST',
         body: JSON.stringify(payload)
     }),
-    getMenu: (kategoriId) => {
+    getMenu: (kategoriId, cabangId) => {
         let url = '/api/menu';
-        if (kategoriId && kategoriId !== 'all') url += `?kategori_id=${kategoriId}`;
+        const params = new URLSearchParams();
+        if (kategoriId && kategoriId !== 'all') params.append('kategori_id', kategoriId);
+        if (cabangId) params.append('cabang_id', cabangId);
+        
+        const qs = params.toString();
+        if (qs) url += `?${qs}`;
+        
         return apiFetch(url);
     },
     getKategori: () => apiFetch('/api/kategori'),

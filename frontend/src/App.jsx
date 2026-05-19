@@ -15,6 +15,7 @@ import Dapur from "./pages/Dapur";
 import Purchasing from "./pages/Purchasing";
 import Pelanggan from "./pages/Pelanggan";
 import Cabang from "./pages/Cabang";
+import QRMenu from "./pages/QRMenu";
 
 export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -25,6 +26,19 @@ export default function App() {
   const [cabangList, setCabangList] = useState([]);
   const [activeCabangId, setActiveCabangId] = useState("");
   const [adminViewMode, setAdminViewMode] = useState("global");
+
+  const [isQRMenu, setIsQRMenu] = useState(false);
+  const [qrCabang, setQrCabang] = useState(null);
+  const [qrMeja, setQrMeja] = useState(null);
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    if (window.location.pathname.includes('/qrmenu') || urlParams.has('qrmenu')) {
+      setIsQRMenu(true);
+      setQrCabang(urlParams.get('cabang'));
+      setQrMeja(urlParams.get('meja'));
+    }
+  }, []);
 
 
   useEffect(() => {
@@ -134,6 +148,10 @@ export default function App() {
     inventory: 'Stok Etalase', bahan_baku: 'Bahan Baku Mentah', menu: 'Kelola Menu', report: 'Laporan Keuangan',
     wastage: 'Barang Rusak', purchasing: 'Pembelian & Supplier', pelanggan: 'Pelanggan & Loyalty', cabang: 'Manajemen Cabang'
   };
+
+  if (isQRMenu) {
+    return <QRMenu cabangId={qrCabang} tableNo={qrMeja} />;
+  }
 
   if (!isLoggedIn) {
     return <Login onLoginSuccess={(data) => {
